@@ -4,4 +4,13 @@
       <p>{{.Title}} — {{.Content}}</p>
     {{end}}
   </h1>
+
+  <br>
+  <p>
+    {{if .newNote}}
+      {{range .newNote}}
+       <p>{{.Title}} — {{.Content}}</p>
+      {{end}}
+    {{end}}
+  </p>
 </html>
