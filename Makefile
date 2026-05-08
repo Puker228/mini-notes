@@ -1,11 +1,17 @@
-build:
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o app ./cmd/app
+.PHONY: build run start release
 
-build-linux:
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o app ./cmd/app
+APP := app
+CMD := ./cmd/app
+LDFLAGS := -s -w
+
+build:
+	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(APP) $(CMD)
 
 run:
-	./app
+	./$(APP)
 
-start: build run
-start-linux: build-linux run
+start: build
+	./$(APP)
+
+release: build
+	GIN_MODE=release ./$(APP)
