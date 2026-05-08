@@ -1,5 +1,7 @@
 <html>
   <h1>
-    {{ .title }}
+    {{range .Notes}}
+      <p>{{.Title}} — {{.Content}}</p>
+    {{end}}
   </h1>
 </html>

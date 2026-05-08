@@ -5,6 +5,8 @@ import (
 	"html/template"
 	"net/http"
 
+	"mini-notes/internal/notes"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -19,7 +21,7 @@ func main() {
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(http.StatusOK, "base.html", gin.H{
-			"title": "Main Title",
+			"Notes": notes.Notes,
 		})
 	})
 
