@@ -41,6 +41,17 @@ func GetNoteByID(ID int64) (Note, error) {
 	return Note{}, ErrNoteNotFound
 }
 
+func UpdateNoteByID(ID int64, title string, content string) (Note, error) {
+	for i, note := range Notes {
+		if note.ID == ID {
+			Notes[i].Title = title
+			Notes[i].Content = content
+			return Notes[i], nil
+		}
+	}
+	return Note{}, ErrNoteNotFound
+}
+
 func DeleteNoteByID(ID int64) {
 	for i, note := range Notes {
 		if note.ID == ID {

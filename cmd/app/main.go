@@ -31,8 +31,10 @@ func main() {
 
 	router.GET("/note", h.ListNotes)
 	router.GET("/note/new", h.ShowCreateForm)
+	router.GET("/note/:id/edit", h.ShowEditForm)
 	router.GET("/note/:id", h.GetNote)
 	router.POST("/note", h.CreateNote)
+	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 
 	srv := &http.Server{
