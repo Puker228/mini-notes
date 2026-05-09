@@ -1,16 +1,31 @@
-<html>
-  <h1>
-    {{range .Notes}}
-      <p>{{.Title}} — {{.Content}}</p>
-    {{end}}
-  </h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mini Notes</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-zinc-950 text-zinc-100 min-h-screen">
+  <div class="max-w-2xl mx-auto px-4 py-12">
 
-  <br>
-  <p>
-    {{if .newNote}}
-      {{range .newNote}}
-       <p>{{.Title}} — {{.Content}}</p>
-      {{end}}
+    <h1 class="text-3xl font-bold mb-8 tracking-tight">📝 Mini Notes</h1>
+
+    {{if .Notes}}
+      <ul class="space-y-3">
+        {{range .Notes}}
+          <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
+            <a href="/note/{{.ID}}" class="block">
+              <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
+              <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+            </a>
+          </li>
+        {{end}}
+      </ul>
+    {{else}}
+      <p class="text-zinc-500">Заметок пока нет.</p>
     {{end}}
-  </p>
+
+  </div>
+</body>
 </html>
