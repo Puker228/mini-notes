@@ -14,7 +14,7 @@
     {{if .Note}}
       <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Редактировать заметку</h1>
 
-      <form method="POST" action="/note/{{.Note.ID}}/edit" class="space-y-5">
+      <form method="POST" action="/note/{{.Note.ID}}/edit" enctype="multipart/form-data" class="space-y-5">
         <div>
           <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
           <input
@@ -37,6 +37,20 @@
             placeholder="Текст заметки..."
             class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
           >{{.Note.Content}}</textarea>
+        </div>
+        <div>
+          <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка</label>
+          {{if .Note.ImageData}}
+            <img src="data:image/*;base64,{{.Note.ImageData}}" alt="" class="w-32 h-32 object-cover rounded-xl mb-2" />
+            <p class="text-zinc-500 text-xs mb-2">Загрузи новую, чтобы заменить</p>
+          {{end}}
+          <input
+            id="image"
+            name="image"
+            type="file"
+            accept="image/*"
+            class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
+          />
         </div>
         <button
           type="submit"

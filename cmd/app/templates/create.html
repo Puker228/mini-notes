@@ -13,7 +13,7 @@
 
     <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Новая заметка</h1>
 
-    <form method="POST" action="/note" class="space-y-5">
+    <form method="POST" action="/note" enctype="multipart/form-data" class="space-y-5">
       <div>
         <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
         <input
@@ -34,6 +34,16 @@
           placeholder="Текст заметки..."
           class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
         ></textarea>
+      </div>
+      <div>
+        <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка (необязательно)</label>
+        <input
+          id="image"
+          name="image"
+          type="file"
+          accept="image/*"
+          class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
+        />
       </div>
       <button
         type="submit"

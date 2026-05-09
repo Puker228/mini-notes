@@ -53,7 +53,7 @@ func main() {
 	router.DELETE("/note/:id", h.DeleteNote)
 
 	srv := &http.Server{
-		Addr:              ":8000",
+		Addr:              ":8800",
 		Handler:           router,
 		ReadHeaderTimeout: 5 * time.Second,
 	}

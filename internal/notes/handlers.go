@@ -1,7 +1,9 @@
 package notes
 
 import (
+	"encoding/base64"
 	"errors"
+	"io"
 	"net/http"
 	"strconv"
 
@@ -85,6 +87,19 @@ func (h *Handler) ShowEditForm(c *gin.Context) {
 	})
 }
 
+func readUploadedImage(c *gin.Context) string {
+	file, _, err := c.Request.FormFile("image")
+	if err != nil {
+		return ""
+	}
+	defer file.Close()
+	data, err := io.ReadAll(io.LimitReader(file, 10<<20))
+	if err != nil || len(data) == 0 {
+		return ""
+	}
+	return base64.StdEncoding.EncodeToString(data)
+}
+
 func (h *Handler) CreateNote(c *gin.Context) {
 	title := c.PostForm("title")
 	content := c.PostForm("content")
@@ -94,7 +109,9 @@ func (h *Handler) CreateNote(c *gin.Context) {
 		return
 	}
 
-	note, err := AddNote(title, content)
+	imageData := readUploadedImage(c)
+
+	note, err := AddNote(title, content, imageData)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create note"})
 		return
@@ -118,7 +135,16 @@ func (h *Handler) UpdateNote(c *gin.Context) {
 		return
 	}
 
-	note, err := UpdateNoteByID(noteID, title, content)
+	imageData := readUploadedImage(c)
+	if imageData == "" {
+		// keep existing image if no new file uploaded
+		existing, err := GetNoteByID(noteID)
+		if err == nil {
+			imageData = existing.ImageData
+		}
+	}
+
+	note, err := UpdateNoteByID(noteID, title, content, imageData)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
 		return

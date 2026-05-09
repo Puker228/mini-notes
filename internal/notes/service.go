@@ -29,12 +29,16 @@ func InitDB(path string) error {
 		CREATE TABLE IF NOT EXISTS notes (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			title TEXT NOT NULL,
-			content TEXT NOT NULL
+			content TEXT NOT NULL,
+			image_data TEXT NOT NULL DEFAULT ''
 		);
 	`); err != nil {
 		_ = database.Close()
 		return err
 	}
+
+	// migrate existing DBs that lack image_data column
+	_, _ = database.Exec(`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`)
 
 	db = database
 	return nil
@@ -52,7 +56,7 @@ func CloseDB() error {
 
 func ListNotes() ([]Note, error) {
 	rows, err := db.Query(`
-		SELECT id, title, content
+		SELECT id, title, content, image_data
 		FROM notes
 		ORDER BY id DESC;
 	`)
@@ -64,7 +68,7 @@ func ListNotes() ([]Note, error) {
 	var notes []Note
 	for rows.Next() {
 		var note Note
-		if err := rows.Scan(&note.ID, &note.Title, &note.Content); err != nil {
+		if err := rows.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData); err != nil {
 			return nil, err
 		}
 		notes = append(notes, note)
@@ -77,11 +81,11 @@ func ListNotes() ([]Note, error) {
 	return notes, nil
 }
 
-func AddNote(title string, content string) (Note, error) {
+func AddNote(title, content, imageData string) (Note, error) {
 	result, err := db.Exec(`
-		INSERT INTO notes (title, content)
-		VALUES (?, ?);
-	`, title, content)
+		INSERT INTO notes (title, content, image_data)
+		VALUES (?, ?, ?);
+	`, title, content, imageData)
 	if err != nil {
 		return Note{}, err
 	}
@@ -92,19 +96,20 @@ func AddNote(title string, content string) (Note, error) {
 	}
 
 	return Note{
-		ID:      id,
-		Title:   title,
-		Content: content,
+		ID:        id,
+		Title:     title,
+		Content:   content,
+		ImageData: imageData,
 	}, nil
 }
 
 func GetNoteByID(ID int64) (Note, error) {
 	var note Note
 	err := db.QueryRow(`
-		SELECT id, title, content
+		SELECT id, title, content, image_data
 		FROM notes
 		WHERE id = ?;
-	`, ID).Scan(&note.ID, &note.Title, &note.Content)
+	`, ID).Scan(&note.ID, &note.Title, &note.Content, &note.ImageData)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrNoteNotFound
 	}
@@ -115,12 +120,12 @@ func GetNoteByID(ID int64) (Note, error) {
 	return note, nil
 }
 
-func UpdateNoteByID(ID int64, title string, content string) (Note, error) {
+func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	result, err := db.Exec(`
 		UPDATE notes
-		SET title = ?, content = ?
+		SET title = ?, content = ?, image_data = ?
 		WHERE id = ?;
-	`, title, content, ID)
+	`, title, content, imageData, ID)
 	if err != nil {
 		return Note{}, err
 	}
@@ -133,7 +138,7 @@ func UpdateNoteByID(ID int64, title string, content string) (Note, error) {
 		return Note{}, ErrNoteNotFound
 	}
 
-	return Note{ID: ID, Title: title, Content: content}, nil
+	return Note{ID: ID, Title: title, Content: content, ImageData: imageData}, nil
 }
 
 func DeleteNoteByID(ID int64) error {

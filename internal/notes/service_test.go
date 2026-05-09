@@ -17,7 +17,7 @@ func TestSQLiteNoteStorageCRUD(t *testing.T) {
 		}
 	}()
 
-	created, err := AddNote("title", "content")
+	created, err := AddNote("title", "content", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -40,7 +40,7 @@ func TestSQLiteNoteStorageCRUD(t *testing.T) {
 		t.Fatalf("GetNoteByID() = %+v", got)
 	}
 
-	updated, err := UpdateNoteByID(created.ID, "updated", "new content")
+	updated, err := UpdateNoteByID(created.ID, "updated", "new content", "")
 	if err != nil {
 		t.Fatalf("UpdateNoteByID() error = %v", err)
 	}

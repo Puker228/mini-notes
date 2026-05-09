@@ -18,9 +18,14 @@
       <ul class="space-y-3">
         {{range .Notes}}
           <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
-            <a href="/note/{{.ID}}" class="block">
-              <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
-              <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+            <a href="/note/{{.ID}}" class="flex gap-4 items-start">
+              {{if .ImageData}}
+                <img src="data:image/*;base64,{{.ImageData}}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0" />
+              {{end}}
+              <div class="min-w-0">
+                <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
+                <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+              </div>
             </a>
           </li>
         {{end}}
