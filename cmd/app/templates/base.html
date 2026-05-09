@@ -30,19 +30,14 @@
         />
         <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
                 name="sort">
-            <option (eq .Sort or value="created_at" {{if
-            "created_at") (eq .Sort "")}}selected{{end}}>Создано</option>
-            <option .Sort eq value="updated_at" {{if
-            "updated_at"}}selected{{end}}>Изменено</option>
-            <option .Sort eq value="title" {{if
-            "title"}}selected{{end}}>Заголовок</option>
+            <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Создано</option>
+            <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Изменено</option>
+            <option value="title" {{if eq .Sort "title"}}selected{{end}}>Заголовок</option>
         </select>
         <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
                 name="order">
-            <option (eq .Order or value="desc" {{if
-            "desc") (eq .Order "")}}selected{{end}}>↓ Новые</option>
-            <option .Order eq value="asc" {{if
-            "asc"}}selected{{end}}>↑ Старые</option>
+            <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Новые</option>
+            <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Старые</option>
         </select>
         <button class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300"
                 type="submit">Найти

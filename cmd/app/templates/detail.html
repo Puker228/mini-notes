@@ -38,11 +38,36 @@
     {{end}}
 
 </div>
+
+<div id="modal-overlay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden">
+    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+        <p id="modal-message" class="text-zinc-100 text-base mb-6"></p>
+        <div class="flex gap-3 justify-end">
+            <button id="modal-cancel" class="px-4 py-2 rounded-xl text-sm text-zinc-300 border border-zinc-700 hover:border-zinc-500 transition-colors">Отмена</button>
+            <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-700 hover:bg-red-600 text-white transition-colors">Удалить</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const csrfToken = () => document.querySelector('meta[name="csrf-token"]').content
 
-    function deleteNote(id) {
-        if (!confirm('Переместить заметку в архив?')) return
+    function showConfirm(message, confirmLabel) {
+        return new Promise(resolve => {
+            const overlay = document.getElementById('modal-overlay')
+            document.getElementById('modal-message').textContent = message
+            document.getElementById('modal-confirm').textContent = confirmLabel || 'Удалить'
+            overlay.classList.remove('hidden')
+            const close = val => { overlay.classList.add('hidden'); resolve(val) }
+            document.getElementById('modal-confirm').onclick = () => close(true)
+            document.getElementById('modal-cancel').onclick = () => close(false)
+            const onKey = e => { if (e.key === 'Escape') { close(false); document.removeEventListener('keydown', onKey) } }
+            document.addEventListener('keydown', onKey)
+        })
+    }
+
+    async function deleteNote(id) {
+        if (!await showConfirm('Переместить заметку в архив?', 'В архив')) return
         fetch('/note/' + id, {
             method: 'DELETE',
             headers: {'X-CSRF-Token': csrfToken()}
