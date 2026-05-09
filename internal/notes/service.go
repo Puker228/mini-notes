@@ -18,6 +18,8 @@ func InitDB(path string) error {
 		return err
 	}
 
+	database.SetMaxOpenConns(1)
+
 	if err := database.Ping(); err != nil {
 		_ = database.Close()
 		return err
@@ -131,7 +133,7 @@ func UpdateNoteByID(ID int64, title string, content string) (Note, error) {
 		return Note{}, ErrNoteNotFound
 	}
 
-	return GetNoteByID(ID)
+	return Note{ID: ID, Title: title, Content: content}, nil
 }
 
 func DeleteNoteByID(ID int64) error {

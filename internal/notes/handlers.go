@@ -1,6 +1,7 @@
 package notes
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -50,13 +51,11 @@ func (h *Handler) DeleteNote(c *gin.Context) {
 		return
 	}
 
-	note, err := GetNoteByID(noteID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-		return
-	}
-
-	if err := DeleteNoteByID(note.ID); err != nil {
+	if err := DeleteNoteByID(noteID); err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete note"})
 		return
 	}
@@ -114,8 +113,8 @@ func (h *Handler) UpdateNote(c *gin.Context) {
 	title := c.PostForm("title")
 	content := c.PostForm("content")
 
-	if title == "" || content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title and content required"})
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title required"})
 		return
 	}
 
