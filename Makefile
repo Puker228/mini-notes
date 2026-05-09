@@ -1,6 +1,6 @@
 .PHONY: build run run-bin start release
 
-APP := app
+APP := mini-notes
 CMD := ./cmd/app
 LDFLAGS := -s -w
 
