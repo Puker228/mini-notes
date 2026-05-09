@@ -90,8 +90,8 @@ func (h *Handler) CreateNote(c *gin.Context) {
 	title := c.PostForm("title")
 	content := c.PostForm("content")
 
-	if title == "" || content == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title and content required"})
+	if title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title required"})
 		return
 	}
 
