@@ -21,8 +21,9 @@ func main() {
 	h := notes.NewHandler()
 
 	router.GET("/note", h.ListNotes)
+	router.GET("/note/new", h.ShowCreateForm)
 	router.GET("/note/:id", h.GetNote)
-	router.GET("/new-note", h.CreateNote)
+	router.POST("/note", h.CreateNote)
 
 	router.Run(":8000")
 }

@@ -18,15 +18,14 @@ func nextID() int64 {
 	return maxNote.ID + 1
 }
 
-func AddNote(title string, content string) []Note {
-	newNote := Note{
-		nextID(),
-		title,
-		content,
+func AddNote(title string, content string) Note {
+	note := Note{
+		ID:      nextID(),
+		Title:   title,
+		Content: content,
 	}
-
-	newNotes := append(Notes, newNote)
-	return newNotes
+	Notes = append(Notes, note)
+	return note
 }
 
 var ErrNoteNotFound = errors.New("note not found")

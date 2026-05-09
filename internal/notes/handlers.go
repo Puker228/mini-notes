@@ -37,10 +37,19 @@ func (h *Handler) GetNote(c *gin.Context) {
 	})
 }
 
-func (h *Handler) CreateNote(c *gin.Context) {
-	newNote := AddNote("Hello", "World")
+func (h *Handler) ShowCreateForm(c *gin.Context) {
+	c.HTML(http.StatusOK, "create.html", nil)
+}
 
-	c.HTML(http.StatusOK, "base.html", gin.H{
-		"newNote": newNote,
-	})
+func (h *Handler) CreateNote(c *gin.Context) {
+	title := c.PostForm("title")
+	content := c.PostForm("content")
+
+	if title == "" || content == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "title and content required"})
+		return
+	}
+
+	AddNote(title, content)
+	c.Redirect(http.StatusSeeOther, "/note")
 }

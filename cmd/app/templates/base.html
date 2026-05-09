@@ -9,7 +9,10 @@
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
   <div class="max-w-2xl mx-auto px-4 py-12">
 
-    <h1 class="text-3xl font-bold mb-8 tracking-tight">📝 Mini Notes</h1>
+    <div class="flex items-center justify-between mb-8">
+      <h1 class="text-3xl font-bold tracking-tight">📝 Mini Notes</h1>
+      <a href="/note/new" class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm">+ Новая</a>
+    </div>
 
     {{if .Notes}}
       <ul class="space-y-3">
