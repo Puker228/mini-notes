@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"mini-notes/internal/csrf"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,6 +16,14 @@ type Handler struct{}
 
 func NewHandler() *Handler {
 	return &Handler{}
+}
+
+func withCSRF(c *gin.Context, data gin.H) gin.H {
+	if data == nil {
+		data = gin.H{}
+	}
+	data["CSRFToken"] = csrf.Token(c)
+	return data
 }
 
 func (h *Handler) ListNotes(c *gin.Context) {
@@ -33,12 +43,12 @@ func (h *Handler) ListNotes(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "base.html", gin.H{
+	c.HTML(http.StatusOK, "base.html", withCSRF(c, gin.H{
 		"Result": result,
 		"Query":  p.Query,
 		"Sort":   p.Sort,
 		"Order":  p.Order,
-	})
+	}))
 }
 
 func (h *Handler) ListArchive(c *gin.Context) {
@@ -47,7 +57,7 @@ func (h *Handler) ListArchive(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list archive"})
 		return
 	}
-	c.HTML(http.StatusOK, "archive.html", gin.H{"Notes": notes})
+	c.HTML(http.StatusOK, "archive.html", withCSRF(c, gin.H{"Notes": notes}))
 }
 
 func (h *Handler) GetNote(c *gin.Context) {
@@ -63,7 +73,7 @@ func (h *Handler) GetNote(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "detail.html", gin.H{"Note": note})
+	c.HTML(http.StatusOK, "detail.html", withCSRF(c, gin.H{"Note": note}))
 }
 
 func (h *Handler) DeleteNote(c *gin.Context) {
@@ -124,7 +134,7 @@ func (h *Handler) PermanentDeleteNote(c *gin.Context) {
 }
 
 func (h *Handler) ShowCreateForm(c *gin.Context) {
-	c.HTML(http.StatusOK, "create.html", nil)
+	c.HTML(http.StatusOK, "create.html", withCSRF(c, nil))
 }
 
 func (h *Handler) ShowEditForm(c *gin.Context) {
@@ -140,7 +150,7 @@ func (h *Handler) ShowEditForm(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "edit.html", gin.H{"Note": note})
+	c.HTML(http.StatusOK, "edit.html", withCSRF(c, gin.H{"Note": note}))
 }
 
 func readUploadedImage(c *gin.Context) string {

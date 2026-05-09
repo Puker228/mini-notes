@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"mini-notes/internal/csrf"
 	"mini-notes/internal/notes"
 
 	"github.com/gin-gonic/gin"
@@ -39,6 +40,7 @@ func main() {
 	}()
 
 	router := gin.Default()
+	router.Use(csrf.Middleware())
 
 	funcMap := template.FuncMap{
 		"formatDate": func(v any) string {

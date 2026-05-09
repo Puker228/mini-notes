@@ -1,43 +1,53 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{if .Note}}{{.Note.Title}}{{else}}Заметка{{end}} — Mini Notes</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{{if .Note}}{{.Note.Title}}{{else}}Заметка{{end}} — Mini Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
-  <div class="max-w-2xl mx-auto px-4 py-12">
+<div class="max-w-2xl mx-auto px-4 py-12">
 
-    <a href="/note" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block">← Все заметки</a>
+    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← Все
+        заметки</a>
 
     {{if .Note}}
-      <div class="flex items-start justify-between mt-4 mb-4 gap-4">
+    <div class="flex items-start justify-between mt-4 mb-4 gap-4">
         <h1 class="text-3xl font-bold tracking-tight">{{.Note.Title}}</h1>
         <div class="shrink-0 flex items-center gap-2">
-          <a href="/note/{{.Note.ID}}/edit" class="text-sm text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors">Редактировать</a>
-          <button onclick="deleteNote({{.Note.ID}})" class="text-sm text-red-500 hover:text-red-400 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded transition-colors">Удалить</button>
+            <a class="text-sm text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors"
+               href="/note/{{.Note.ID}}/edit">Редактировать</a>
+            <button class="text-sm text-red-500 hover:text-red-400 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded transition-colors"
+                    onclick="deleteNote({{.Note.ID}})">
+                Удалить
+            </button>
         </div>
-      </div>
-      {{if .Note.ImageData}}
-        <img src="data:image/*;base64,{{.Note.ImageData}}" alt="" class="rounded-xl mb-6 max-h-96 object-contain" />
-      {{end}}
-      <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
-      <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
+    </div>
+    {{if .Note.ImageData}}
+    <img alt="" class="rounded-xl mb-6 max-h-96 object-contain" src="data:image/*;base64,{{.Note.ImageData}}"/>
+    {{end}}
+    <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
+    <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
         <span>Создано: {{formatDate .Note.CreatedAt}}</span>
         <span>Изменено: {{formatDate .Note.UpdatedAt}}</span>
-      </div>
+    </div>
     {{else}}
-      <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
+    <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
     {{end}}
 
-  </div>
-  <script>
+</div>
+<script>
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]').content
+
     function deleteNote(id) {
-      if (!confirm('Переместить заметку в архив?')) return
-      fetch('/note/' + id, { method: 'DELETE' })
-        .then(() => window.location.href = '/note')
+        if (!confirm('Переместить заметку в архив?')) return
+        fetch('/note/' + id, {
+            method: 'DELETE',
+            headers: {'X-CSRF-Token': csrfToken()}
+        }).then(() => window.location.href = '/note')
     }
-  </script>
+</script>
 </body>
 </html>

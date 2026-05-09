@@ -1,63 +1,79 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Архив — Mini Notes</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Архив — Mini Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
-  <div class="max-w-2xl mx-auto px-4 py-12">
+<div class="max-w-2xl mx-auto px-4 py-12">
 
-    <a href="/note" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-4 inline-block">← Все заметки</a>
+    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-4 inline-block" href="/note">← Все
+        заметки</a>
     <h1 class="text-3xl font-bold tracking-tight mb-8">🗃 Архив</h1>
 
     {{if .Notes}}
-      <ul class="space-y-3" id="archive-list">
+    <ul class="space-y-3" id="archive-list">
         {{range .Notes}}
-          <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5" id="note-{{.ID}}">
+        <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5" id="note-{{.ID}}">
             <div class="flex gap-4 items-start">
-              {{if .ImageData}}
-                <img src="data:image/*;base64,{{.ImageData}}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 opacity-40" />
-              {{end}}
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold text-lg text-zinc-500">{{.Title}}</p>
-                <p class="text-zinc-600 text-sm mt-1 line-clamp-2">{{.Content}}</p>
-                <p class="text-zinc-700 text-xs mt-2">Удалено: {{formatDate .DeletedAt}}</p>
-              </div>
-              <div class="shrink-0 flex flex-col gap-2">
-                <button onclick="restoreNote({{.ID}})" class="text-sm text-green-500 hover:text-green-400 border border-green-900 hover:border-green-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap">Восстановить</button>
-                <button onclick="permanentDelete({{.ID}})" class="text-sm text-red-500 hover:text-red-400 border border-red-900 hover:border-red-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap">Удалить навсегда</button>
-              </div>
+                {{if .ImageData}}
+                <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 opacity-40"
+                     src="data:image/*;base64,{{.ImageData}}"/>
+                {{end}}
+                <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-lg text-zinc-500">{{.Title}}</p>
+                    <p class="text-zinc-600 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                    <p class="text-zinc-700 text-xs mt-2">Удалено: {{formatDate .DeletedAt}}</p>
+                </div>
+                <div class="shrink-0 flex flex-col gap-2">
+                    <button class="text-sm text-green-500 hover:text-green-400 border border-green-900 hover:border-green-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                            onclick="restoreNote({{.ID}})">
+                        Восстановить
+                    </button>
+                    <button class="text-sm text-red-500 hover:text-red-400 border border-red-900 hover:border-red-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                            onclick="permanentDelete({{.ID}})">
+                        Удалить навсегда
+                    </button>
+                </div>
             </div>
-          </li>
+        </li>
         {{end}}
-      </ul>
+    </ul>
     {{else}}
-      <p class="text-zinc-500">Архив пуст.</p>
+    <p class="text-zinc-500">Архив пуст.</p>
     {{end}}
 
-  </div>
-  <script>
+</div>
+<script>
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]').content
+
     function restoreNote(id) {
-      fetch('/note/' + id + '/restore', { method: 'POST' })
-        .then(r => {
-          if (r.ok) {
-            const el = document.getElementById('note-' + id)
-            if (el) el.remove()
-          }
+        fetch('/note/' + id + '/restore', {
+            method: 'POST',
+            headers: {'X-CSRF-Token': csrfToken()}
+        }).then(r => {
+            if (r.ok) {
+                const el = document.getElementById('note-' + id)
+                if (el) el.remove()
+            }
         })
     }
+
     function permanentDelete(id) {
-      if (!confirm('Удалить навсегда? Это действие нельзя отменить.')) return
-      fetch('/note/' + id + '/permanent', { method: 'DELETE' })
-        .then(r => {
-          if (r.ok) {
-            const el = document.getElementById('note-' + id)
-            if (el) el.remove()
-          }
+        if (!confirm('Удалить навсегда? Это действие нельзя отменить.')) return
+        fetch('/note/' + id + '/permanent', {
+            method: 'DELETE',
+            headers: {'X-CSRF-Token': csrfToken()}
+        }).then(r => {
+            if (r.ok) {
+                const el = document.getElementById('note-' + id)
+                if (el) el.remove()
+            }
         })
     }
-  </script>
+</script>
 </body>
 </html>

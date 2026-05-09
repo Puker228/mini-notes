@@ -1,68 +1,71 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{if .Note}}Редактировать {{.Note.Title}}{{else}}Редактировать заметку{{end}} — Mini Notes</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{{if .Note}}Редактировать {{.Note.Title}}{{else}}Редактировать заметку{{end}} — Mini Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
-  <div class="max-w-2xl mx-auto px-4 py-12">
+<div class="max-w-2xl mx-auto px-4 py-12">
 
-    <a href="{{if .Note}}/note/{{.Note.ID}}{{else}}/note{{end}}" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block">← Назад</a>
+    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block"
+       href="{{if .Note}}/note/{{.Note.ID}}{{else}}/note{{end}}">← Назад</a>
 
     {{if .Note}}
-      <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Редактировать заметку</h1>
+    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Редактировать заметку</h1>
 
-      <form method="POST" action="/note/{{.Note.ID}}/edit" enctype="multipart/form-data" class="space-y-5">
+    <form action="/note/{{.Note.ID}}/edit" class="space-y-5" enctype="multipart/form-data" method="POST">
+        <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
-          <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
-          <input
-            id="title"
-            name="title"
-            type="text"
-            required
-            value="{{.Note.Title}}"
-            placeholder="Заголовок заметки"
-            class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-          />
+            <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="title"
+                    name="title"
+                    placeholder="Заголовок заметки"
+                    required
+                    type="text"
+                    value="{{.Note.Title}}"
+            />
         </div>
         <div>
-          <label class="block text-sm text-zinc-400 mb-1" for="content">Содержание</label>
-          <textarea
-            id="content"
-            name="content"
-            rows="6"
-            required
-            placeholder="Текст заметки..."
-            class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
-          >{{.Note.Content}}</textarea>
+            <label class="block text-sm text-zinc-400 mb-1" for="content">Содержание</label>
+            <textarea
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
+                    id="content"
+                    name="content"
+                    placeholder="Текст заметки..."
+                    required
+                    rows="6"
+            >{{.Note.Content}}</textarea>
         </div>
         <div>
-          <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка</label>
-          {{if .Note.ImageData}}
-            <img src="data:image/*;base64,{{.Note.ImageData}}" alt="" class="w-32 h-32 object-cover rounded-xl mb-2" />
+            <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка</label>
+            {{if .Note.ImageData}}
+            <img alt="" class="w-32 h-32 object-cover rounded-xl mb-2" src="data:image/*;base64,{{.Note.ImageData}}"/>
             <p class="text-zinc-500 text-xs mb-2">Загрузи новую, чтобы заменить</p>
-          {{end}}
-          <input
-            id="image"
-            name="image"
-            type="file"
-            accept="image/*"
-            class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
-          />
+            {{end}}
+            <input
+                    accept="image/*"
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
+                    id="image"
+                    name="image"
+                    type="file"
+            />
         </div>
         <button
-          type="submit"
-          class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
+                class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
+                type="submit"
         >
-          Сохранить
+            Сохранить
         </button>
-      </form>
+    </form>
     {{else}}
-      <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
+    <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
     {{end}}
 
-  </div>
+</div>
 </body>
 </html>

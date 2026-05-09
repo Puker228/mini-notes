@@ -1,80 +1,95 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mini Notes</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Mini Notes</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
-  <div class="max-w-2xl mx-auto px-4 py-12">
+<div class="max-w-2xl mx-auto px-4 py-12">
 
     <div class="flex items-center justify-between mb-6">
-      <h1 class="text-3xl font-bold tracking-tight">📝 Mini Notes</h1>
-      <div class="flex items-center gap-3">
-        <a href="/archive" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors">Архив</a>
-        <a href="/note/new" class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm">+ Новая</a>
-      </div>
+        <h1 class="text-3xl font-bold tracking-tight">📝 Mini Notes</h1>
+        <div class="flex items-center gap-3">
+            <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors" href="/archive">Архив</a>
+            <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
+               href="/note/new">+
+                Новая</a>
+        </div>
     </div>
 
-    <form method="GET" action="/note" class="flex gap-2 mb-6">
-      <input
-        type="text"
-        name="q"
-        value="{{.Query}}"
-        placeholder="Поиск по заголовку и тексту..."
-        class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors text-sm"
-      />
-      <select name="sort" class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer">
-        <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Создано</option>
-        <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Изменено</option>
-        <option value="title" {{if eq .Sort "title"}}selected{{end}}>Заголовок</option>
-      </select>
-      <select name="order" class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer">
-        <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Новые</option>
-        <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Старые</option>
-      </select>
-      <button type="submit" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300">Найти</button>
+    <form action="/note" class="flex gap-2 mb-6" method="GET">
+        <input
+                class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors text-sm"
+                name="q"
+                placeholder="Поиск по заголовку и тексту..."
+                type="text"
+                value="{{.Query}}"
+        />
+        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
+                name="sort">
+            <option (eq .Sort or value="created_at" {{if
+            "created_at") (eq .Sort "")}}selected{{end}}>Создано</option>
+            <option .Sort eq value="updated_at" {{if
+            "updated_at"}}selected{{end}}>Изменено</option>
+            <option .Sort eq value="title" {{if
+            "title"}}selected{{end}}>Заголовок</option>
+        </select>
+        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
+                name="order">
+            <option (eq .Order or value="desc" {{if
+            "desc") (eq .Order "")}}selected{{end}}>↓ Новые</option>
+            <option .Order eq value="asc" {{if
+            "asc"}}selected{{end}}>↑ Старые</option>
+        </select>
+        <button class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300"
+                type="submit">Найти
+        </button>
     </form>
 
     {{if .Result.Notes}}
-      <ul class="space-y-3">
+    <ul class="space-y-3">
         {{range .Result.Notes}}
-          <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
-            <a href="/note/{{.ID}}" class="flex gap-4 items-start">
-              {{if .ImageData}}
-                <img src="data:image/*;base64,{{.ImageData}}" alt="" class="w-16 h-16 object-cover rounded-lg shrink-0" />
-              {{end}}
-              <div class="min-w-0 flex-1">
-                <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
-                <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
-                <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
-              </div>
+        <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
+            <a class="flex gap-4 items-start" href="/note/{{.ID}}">
+                {{if .ImageData}}
+                <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0"
+                     src="data:image/*;base64,{{.ImageData}}"/>
+                {{end}}
+                <div class="min-w-0 flex-1">
+                    <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
+                    <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                    <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
+                </div>
             </a>
-          </li>
+        </li>
         {{end}}
-      </ul>
+    </ul>
 
-      {{if gt .Result.TotalPages 1}}
-      <div class="flex items-center justify-between mt-6">
+    {{if gt .Result.TotalPages 1}}
+    <div class="flex items-center justify-between mt-6">
         <span class="text-zinc-500 text-sm">Стр. {{.Result.Page}} из {{.Result.TotalPages}} · {{.Result.Total}} заметок</span>
         <div class="flex gap-2">
-          {{if .Result.HasPrev}}
-            <a href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.PrevPage}}" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors">← Назад</a>
-          {{end}}
-          {{if .Result.HasNext}}
-            <a href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.NextPage}}" class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors">Вперёд →</a>
-          {{end}}
+            {{if .Result.HasPrev}}
+            <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.PrevPage}}">← Назад</a>
+            {{end}}
+            {{if .Result.HasNext}}
+            <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.NextPage}}">Вперёд →</a>
+            {{end}}
         </div>
-      </div>
-      {{end}}
-
-    {{else}}
-      <p class="text-zinc-500">
-        {{if .Query}}Ничего не найдено по запросу «{{.Query}}».{{else}}Заметок пока нет.{{end}}
-      </p>
+    </div>
     {{end}}
 
-  </div>
+    {{else}}
+    <p class="text-zinc-500">
+        {{if .Query}}Ничего не найдено по запросу «{{.Query}}».{{else}}Заметок пока нет.{{end}}
+    </p>
+    {{end}}
+
+</div>
 </body>
 </html>
