@@ -37,6 +37,23 @@ func (h *Handler) GetNote(c *gin.Context) {
 	})
 }
 
+func (h *Handler) DeleteNote(c *gin.Context) {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	note, err := GetNoteByID(noteID)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
+		return
+	}
+
+	DeleteNoteByID(note.ID)
+	c.Redirect(http.StatusSeeOther, "/note")
+}
+
 func (h *Handler) ShowCreateForm(c *gin.Context) {
 	c.HTML(http.StatusOK, "create.html", nil)
 }

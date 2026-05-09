@@ -1,6 +1,8 @@
 package notes
 
-import "errors"
+import (
+	"errors"
+)
 
 func nextID() int64 {
 	if len(Notes) == 0 {
@@ -37,4 +39,12 @@ func GetNoteByID(ID int64) (Note, error) {
 		}
 	}
 	return Note{}, ErrNoteNotFound
+}
+
+func DeleteNoteByID(ID int64) {
+	for i, note := range Notes {
+		if note.ID == ID {
+			Notes = append(Notes[:i], Notes[i+1:]...)
+		}
+	}
 }

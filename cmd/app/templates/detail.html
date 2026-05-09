@@ -12,12 +12,22 @@
     <a href="/note" class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block">← Все заметки</a>
 
     {{if .Note}}
-      <h1 class="text-3xl font-bold mt-4 mb-4 tracking-tight">{{.Note.Title}}</h1>
+      <div class="flex items-start justify-between mt-4 mb-4 gap-4">
+        <h1 class="text-3xl font-bold tracking-tight">{{.Note.Title}}</h1>
+        <button onclick="deleteNote({{.Note.ID}})" class="shrink-0 text-sm text-red-500 hover:text-red-400 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded transition-colors">Удалить</button>
+      </div>
       <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
     {{else}}
       <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
     {{end}}
 
   </div>
+  <script>
+    function deleteNote(id) {
+      if (!confirm('Удалить заметку?')) return
+      fetch('/note/' + id, { method: 'DELETE' })
+        .then(() => window.location.href = '/note')
+    }
+  </script>
 </body>
 </html>

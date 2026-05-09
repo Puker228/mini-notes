@@ -33,6 +33,7 @@ func main() {
 	router.GET("/note/new", h.ShowCreateForm)
 	router.GET("/note/:id", h.GetNote)
 	router.POST("/note", h.CreateNote)
+	router.DELETE("/note/:id", h.DeleteNote)
 
 	srv := &http.Server{
 		Addr:              ":8000",
@@ -51,7 +52,7 @@ func main() {
 	stop()
 	log.Println("shutting down gracefully, press Ctrl+C again to force")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Println("Server forced to shutdown: ", err)
