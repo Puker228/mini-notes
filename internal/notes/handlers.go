@@ -14,8 +14,14 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) ListNotes(c *gin.Context) {
+	notes, err := ListNotes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list notes"})
+		return
+	}
+
 	c.HTML(http.StatusOK, "base.html", gin.H{
-		"Notes": Notes,
+		"Notes": notes,
 	})
 }
 
@@ -50,7 +56,11 @@ func (h *Handler) DeleteNote(c *gin.Context) {
 		return
 	}
 
-	DeleteNoteByID(note.ID)
+	if err := DeleteNoteByID(note.ID); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete note"})
+		return
+	}
+
 	c.Status(http.StatusNoContent)
 }
 
@@ -85,8 +95,13 @@ func (h *Handler) CreateNote(c *gin.Context) {
 		return
 	}
 
-	AddNote(title, content)
-	c.Redirect(http.StatusSeeOther, "/note")
+	note, err := AddNote(title, content)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create note"})
+		return
+	}
+
+	c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
 }
 
 func (h *Handler) UpdateNote(c *gin.Context) {

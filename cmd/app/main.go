@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"os/signal"
 	"syscall"
 	"time"
@@ -21,6 +22,20 @@ var templateFS embed.FS
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	dbPath := os.Getenv("NOTES_DB_PATH")
+	if dbPath == "" {
+		dbPath = "notes.db"
+	}
+
+	if err := notes.InitDB(dbPath); err != nil {
+		log.Fatalf("failed to initialize sqlite database: %s", err)
+	}
+	defer func() {
+		if err := notes.CloseDB(); err != nil {
+			log.Println("failed to close sqlite database:", err)
+		}
+	}()
 
 	router := gin.Default()
 

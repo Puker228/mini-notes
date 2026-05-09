@@ -33,5 +33,6 @@ go.work.sum
 
 .DS_Store
 mini-notes
+notes.db
 
 /dist
