@@ -51,7 +51,7 @@ func (h *Handler) DeleteNote(c *gin.Context) {
 	}
 
 	DeleteNoteByID(note.ID)
-	c.Redirect(http.StatusSeeOther, "/note")
+	c.Status(http.StatusNoContent)
 }
 
 func (h *Handler) ShowCreateForm(c *gin.Context) {
