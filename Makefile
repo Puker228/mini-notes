@@ -1,4 +1,4 @@
-.PHONY: build run start release
+.PHONY: build run run-bin start release
 
 APP := app
 CMD := ./cmd/app
@@ -8,6 +8,9 @@ build:
 	CGO_ENABLED=0 go build -ldflags="$(LDFLAGS)" -o $(APP) $(CMD)
 
 run:
+	go run $(CMD)
+
+run-bin:
 	./$(APP)
 
 start: build
