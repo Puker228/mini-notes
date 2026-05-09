@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
+	"time"
 
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
@@ -11,6 +13,12 @@ import (
 var db *sql.DB
 
 var ErrNoteNotFound = errors.New("note not found")
+
+const timeLayout = time.RFC3339
+
+type scanner interface {
+	Scan(dest ...any) error
+}
 
 func InitDB(path string) error {
 	database, err := sql.Open("sqlite3", fmt.Sprintf("file:%s", path))
@@ -27,18 +35,27 @@ func InitDB(path string) error {
 
 	if _, err := database.Exec(`
 		CREATE TABLE IF NOT EXISTS notes (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			title TEXT NOT NULL,
-			content TEXT NOT NULL,
-			image_data TEXT NOT NULL DEFAULT ''
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			title      TEXT NOT NULL,
+			content    TEXT NOT NULL,
+			image_data TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL DEFAULT '',
+			updated_at TEXT NOT NULL DEFAULT '',
+			deleted_at TEXT
 		);
 	`); err != nil {
 		_ = database.Close()
 		return err
 	}
 
-	// migrate existing DBs that lack image_data column
-	_, _ = database.Exec(`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`)
+	for _, migration := range []string{
+		`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
+	} {
+		_, _ = database.Exec(migration)
+	}
 
 	db = database
 	return nil
@@ -48,17 +65,108 @@ func CloseDB() error {
 	if db == nil {
 		return nil
 	}
-
 	err := db.Close()
 	db = nil
 	return err
 }
 
-func ListNotes() ([]Note, error) {
-	rows, err := db.Query(`
-		SELECT id, title, content, image_data
+func scanNote(s scanner) (Note, error) {
+	var note Note
+	var createdAt, updatedAt string
+	var deletedAt sql.NullString
+	if err := s.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData, &createdAt, &updatedAt, &deletedAt); err != nil {
+		return Note{}, err
+	}
+	note.CreatedAt, _ = time.Parse(timeLayout, createdAt)
+	note.UpdatedAt, _ = time.Parse(timeLayout, updatedAt)
+	if deletedAt.Valid && deletedAt.String != "" {
+		t, _ := time.Parse(timeLayout, deletedAt.String)
+		note.DeletedAt = &t
+	}
+	return note, nil
+}
+
+func ListNotes(p ListParams) (ListResult, error) {
+	if p.PageSize <= 0 {
+		p.PageSize = 10
+	}
+	if p.Page <= 0 {
+		p.Page = 1
+	}
+
+	sortCol := "created_at"
+	switch p.Sort {
+	case "updated_at", "title":
+		sortCol = p.Sort
+	}
+	sortOrder := "DESC"
+	if strings.ToUpper(p.Order) == "ASC" {
+		sortOrder = "ASC"
+	}
+
+	likeQ := "%" + p.Query + "%"
+
+	var total int
+	if err := db.QueryRow(`
+		SELECT COUNT(*) FROM notes
+		WHERE (deleted_at IS NULL OR deleted_at = '')
+		  AND (title LIKE ? OR content LIKE ?)
+	`, likeQ, likeQ).Scan(&total); err != nil {
+		return ListResult{}, err
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
 		FROM notes
-		ORDER BY id DESC;
+		WHERE (deleted_at IS NULL OR deleted_at = '')
+		  AND (title LIKE ? OR content LIKE ?)
+		ORDER BY %s %s
+		LIMIT ? OFFSET ?
+	`, sortCol, sortOrder)
+
+	offset := (p.Page - 1) * p.PageSize
+	rows, err := db.Query(query, likeQ, likeQ, p.PageSize, offset)
+	if err != nil {
+		return ListResult{}, err
+	}
+	defer rows.Close()
+
+	var notes []Note
+	for rows.Next() {
+		note, err := scanNote(rows)
+		if err != nil {
+			return ListResult{}, err
+		}
+		notes = append(notes, note)
+	}
+	if err := rows.Err(); err != nil {
+		return ListResult{}, err
+	}
+
+	totalPages := (total + p.PageSize - 1) / p.PageSize
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	return ListResult{
+		Notes:      notes,
+		Total:      total,
+		Page:       p.Page,
+		PageSize:   p.PageSize,
+		TotalPages: totalPages,
+		HasPrev:    p.Page > 1,
+		HasNext:    p.Page < totalPages,
+		PrevPage:   p.Page - 1,
+		NextPage:   p.Page + 1,
+	}, nil
+}
+
+func ListArchivedNotes() ([]Note, error) {
+	rows, err := db.Query(`
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
+		FROM notes
+		WHERE deleted_at IS NOT NULL AND deleted_at != ''
+		ORDER BY deleted_at DESC
 	`)
 	if err != nil {
 		return nil, err
@@ -67,25 +175,21 @@ func ListNotes() ([]Note, error) {
 
 	var notes []Note
 	for rows.Next() {
-		var note Note
-		if err := rows.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData); err != nil {
+		note, err := scanNote(rows)
+		if err != nil {
 			return nil, err
 		}
 		notes = append(notes, note)
 	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return notes, nil
+	return notes, rows.Err()
 }
 
 func AddNote(title, content, imageData string) (Note, error) {
+	now := time.Now().UTC().Format(timeLayout)
 	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data)
-		VALUES (?, ?, ?);
-	`, title, content, imageData)
+		INSERT INTO notes (title, content, image_data, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?);
+	`, title, content, imageData, now, now)
 	if err != nil {
 		return Note{}, err
 	}
@@ -95,37 +199,37 @@ func AddNote(title, content, imageData string) (Note, error) {
 		return Note{}, err
 	}
 
+	t, _ := time.Parse(timeLayout, now)
 	return Note{
 		ID:        id,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,
+		CreatedAt: t,
+		UpdatedAt: t,
 	}, nil
 }
 
 func GetNoteByID(ID int64) (Note, error) {
-	var note Note
-	err := db.QueryRow(`
-		SELECT id, title, content, image_data
+	row := db.QueryRow(`
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
 		FROM notes
-		WHERE id = ?;
-	`, ID).Scan(&note.ID, &note.Title, &note.Content, &note.ImageData)
+		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+	`, ID)
+	note, err := scanNote(row)
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrNoteNotFound
 	}
-	if err != nil {
-		return Note{}, err
-	}
-
-	return note, nil
+	return note, err
 }
 
 func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
+	now := time.Now().UTC().Format(timeLayout)
 	result, err := db.Exec(`
 		UPDATE notes
-		SET title = ?, content = ?, image_data = ?
-		WHERE id = ?;
-	`, title, content, imageData, ID)
+		SET title = ?, content = ?, image_data = ?, updated_at = ?
+		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+	`, title, content, imageData, now, ID)
 	if err != nil {
 		return Note{}, err
 	}
@@ -138,25 +242,55 @@ func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 		return Note{}, ErrNoteNotFound
 	}
 
-	return Note{ID: ID, Title: title, Content: content, ImageData: imageData}, nil
+	t, _ := time.Parse(timeLayout, now)
+	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t}, nil
 }
 
-func DeleteNoteByID(ID int64) error {
+func SoftDeleteNoteByID(ID int64) error {
+	now := time.Now().UTC().Format(timeLayout)
 	result, err := db.Exec(`
-		DELETE FROM notes
-		WHERE id = ?;
-	`, ID)
+		UPDATE notes SET deleted_at = ?
+		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+	`, now, ID)
 	if err != nil {
 		return err
 	}
-
-	rowsAffected, err := result.RowsAffected()
+	rows, err := result.RowsAffected()
 	if err != nil {
 		return err
 	}
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return ErrNoteNotFound
 	}
+	return nil
+}
 
+func RestoreNoteByID(ID int64) error {
+	result, err := db.Exec(`UPDATE notes SET deleted_at = NULL WHERE id = ?;`, ID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNoteNotFound
+	}
+	return nil
+}
+
+func PermanentDeleteNoteByID(ID int64) error {
+	result, err := db.Exec(`DELETE FROM notes WHERE id = ?;`, ID)
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return ErrNoteNotFound
+	}
 	return nil
 }

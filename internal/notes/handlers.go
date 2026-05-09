@@ -17,15 +17,37 @@ func NewHandler() *Handler {
 }
 
 func (h *Handler) ListNotes(c *gin.Context) {
-	notes, err := ListNotes()
+	p := ListParams{
+		Query:    c.Query("q"),
+		Sort:     c.Query("sort"),
+		Order:    c.Query("order"),
+		PageSize: 10,
+	}
+	if page, err := strconv.Atoi(c.Query("page")); err == nil && page > 0 {
+		p.Page = page
+	}
+
+	result, err := ListNotes(p)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list notes"})
 		return
 	}
 
 	c.HTML(http.StatusOK, "base.html", gin.H{
-		"Notes": notes,
+		"Result": result,
+		"Query":  p.Query,
+		"Sort":   p.Sort,
+		"Order":  p.Order,
 	})
+}
+
+func (h *Handler) ListArchive(c *gin.Context) {
+	notes, err := ListArchivedNotes()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list archive"})
+		return
+	}
+	c.HTML(http.StatusOK, "archive.html", gin.H{"Notes": notes})
 }
 
 func (h *Handler) GetNote(c *gin.Context) {
@@ -41,9 +63,7 @@ func (h *Handler) GetNote(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "detail.html", gin.H{
-		"Note": note,
-	})
+	c.HTML(http.StatusOK, "detail.html", gin.H{"Note": note})
 }
 
 func (h *Handler) DeleteNote(c *gin.Context) {
@@ -53,12 +73,50 @@ func (h *Handler) DeleteNote(c *gin.Context) {
 		return
 	}
 
-	if err := DeleteNoteByID(noteID); err != nil {
+	if err := SoftDeleteNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete note"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) RestoreNote(c *gin.Context) {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	if err := RestoreNoteByID(noteID); err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to restore note"})
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (h *Handler) PermanentDeleteNote(c *gin.Context) {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
+		return
+	}
+
+	if err := PermanentDeleteNoteByID(noteID); err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to permanently delete note"})
 		return
 	}
 
@@ -82,9 +140,7 @@ func (h *Handler) ShowEditForm(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "edit.html", gin.H{
-		"Note": note,
-	})
+	c.HTML(http.StatusOK, "edit.html", gin.H{"Note": note})
 }
 
 func readUploadedImage(c *gin.Context) string {
@@ -109,9 +165,7 @@ func (h *Handler) CreateNote(c *gin.Context) {
 		return
 	}
 
-	imageData := readUploadedImage(c)
-
-	note, err := AddNote(title, content, imageData)
+	note, err := AddNote(title, content, readUploadedImage(c))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create note"})
 		return
@@ -137,9 +191,7 @@ func (h *Handler) UpdateNote(c *gin.Context) {
 
 	imageData := readUploadedImage(c)
 	if imageData == "" {
-		// keep existing image if no new file uploaded
-		existing, err := GetNoteByID(noteID)
-		if err == nil {
+		if existing, err := GetNoteByID(noteID); err == nil {
 			imageData = existing.ImageData
 		}
 	}

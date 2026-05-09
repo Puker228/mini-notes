@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"syscall"
@@ -39,7 +40,26 @@ func main() {
 
 	router := gin.Default()
 
-	t := template.Must(template.ParseFS(templateFS, "templates/*.html"))
+	funcMap := template.FuncMap{
+		"formatDate": func(v any) string {
+			switch t := v.(type) {
+			case time.Time:
+				if t.IsZero() {
+					return "—"
+				}
+				return t.Format("02.01.2006 15:04")
+			case *time.Time:
+				if t == nil || t.IsZero() {
+					return "—"
+				}
+				return t.Format("02.01.2006 15:04")
+			}
+			return "—"
+		},
+		"urlEncode": url.QueryEscape,
+	}
+
+	t := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
 	router.SetHTMLTemplate(t)
 
 	h := notes.NewHandler()
@@ -51,6 +71,9 @@ func main() {
 	router.POST("/note", h.CreateNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
+	router.POST("/note/:id/restore", h.RestoreNote)
+	router.DELETE("/note/:id/permanent", h.PermanentDeleteNote)
+	router.GET("/archive", h.ListArchive)
 
 	srv := &http.Server{
 		Addr:              ":8800",
