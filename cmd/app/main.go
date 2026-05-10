@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"html/template"
+	"io/fs"
 	"log"
 	"net/http"
 	"net/url"
@@ -18,7 +19,7 @@ import (
 	"github.com/labstack/echo/v5/middleware"
 )
 
-//go:embed templates/*
+//go:embed templates/* static/*
 var templateFS embed.FS
 
 const (
@@ -92,6 +93,11 @@ func main() {
 	t := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
 	router.Renderer = &echo.TemplateRenderer{Template: t}
 
+	staticFS, err := fs.Sub(templateFS, "static")
+	if err != nil {
+		log.Fatalf("failed to initialize static assets: %s", err)
+	}
+	router.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.FS(staticFS)))))
 	router.Static("/uploads", uploadsDir)
 
 	h := notes.NewHandler(uploadsDir)

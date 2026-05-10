@@ -1,0 +1,27 @@
+{
+  "name": "mini-notes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Mini Notes is a small web app for creating, viewing, editing, and deleting notes. Notes are stored in a local SQLite database, and the UI is rendered with Go HTML templates through Echo.",
+  "scripts": {
+    "css:build": "tailwindcss -i ./cmd/app/static/input.css -o ./cmd/app/static/app.css --minify",
+    "css:watch": "tailwindcss -i ./cmd/app/static/input.css -o ./cmd/app/static/app.css --watch",
+    "test": "go test ./..."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Puker228/mini-notes.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "GPL-3.0-only",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Puker228/mini-notes/issues"
+  },
+  "homepage": "https://github.com/Puker228/mini-notes#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.0",
+    "tailwindcss": "^4.3.0"
+  }
+}
