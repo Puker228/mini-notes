@@ -12,14 +12,32 @@ import (
 	"syscall"
 	"time"
 
-	"mini-notes/internal/csrf"
 	"mini-notes/internal/notes"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 //go:embed templates/*
 var templateFS embed.FS
+
+const (
+	csrfCookieName = "csrf_token"
+	csrfFieldName  = "_csrf"
+)
+
+func csrfMiddleware() echo.MiddlewareFunc {
+	return middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLookup:    "header:" + echo.HeaderXCSRFToken + ",form:" + csrfFieldName,
+		CookieName:     csrfCookieName,
+		CookiePath:     "/",
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
+		ErrorHandler: func(_ *echo.Context, _ error) error {
+			return middleware.ErrCSRFInvalid
+		},
+	})
+}
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -39,8 +57,10 @@ func main() {
 		}
 	}()
 
-	router := gin.Default()
-	router.Use(csrf.Middleware())
+	router := echo.New()
+	router.Use(middleware.RequestLogger())
+	router.Use(middleware.Recover())
+	router.Use(csrfMiddleware())
 
 	funcMap := template.FuncMap{
 		"formatDate": func(v any) string {
@@ -62,7 +82,7 @@ func main() {
 	}
 
 	t := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
-	router.SetHTMLTemplate(t)
+	router.Renderer = &echo.TemplateRenderer{Template: t}
 
 	h := notes.NewHandler()
 

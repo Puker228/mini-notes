@@ -11,16 +11,15 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
 )
 
-func setupHandlerRouter(t *testing.T) *gin.Engine {
+func setupHandlerRouter(t *testing.T) *echo.Echo {
 	t.Helper()
 
-	gin.SetMode(gin.TestMode)
 	setupTestDB(t)
 
-	router := gin.New()
+	router := echo.New()
 	h := NewHandler()
 	router.POST("/note", h.CreateNote)
 	router.POST("/note/:id/edit", h.UpdateNote)

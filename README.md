@@ -2,7 +2,7 @@
 
 Mini Notes is a small web app for creating, viewing, editing, and deleting notes.
 Notes are stored in a local SQLite database, and the UI is rendered with Go HTML
-templates.
+templates through Echo.
 
 ## Features
 
@@ -66,7 +66,7 @@ Builds and starts the binary.
 make release
 ```
 
-Builds and starts the app with `GIN_MODE=release`.
+Builds and starts the app.
 
 ```sh
 make build-all
@@ -89,13 +89,12 @@ internal/notes/model.go      Note model
 internal/notes/service.go    SQLite storage logic
 internal/notes/handlers.go   HTTP handlers
 internal/notes/*_test.go     Tests
-internal/csrf/               CSRF middleware and tests
 ```
 
 ## Tests
 
 Test files end with `_test.go`, and test functions start with `Test`.
-The tests cover note storage, HTTP handlers, and CSRF middleware.
+The tests cover note storage, HTTP handlers, and Echo CSRF configuration.
 
 ```sh
 go test ./...

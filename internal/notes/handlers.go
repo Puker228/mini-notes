@@ -7,9 +7,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"mini-notes/internal/csrf"
-
-	"github.com/gin-gonic/gin"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
 )
 
 type Handler struct{}
@@ -18,32 +17,32 @@ func NewHandler() *Handler {
 	return &Handler{}
 }
 
-func withCSRF(c *gin.Context, data gin.H) gin.H {
+func withCSRF(c *echo.Context, data map[string]any) map[string]any {
 	if data == nil {
-		data = gin.H{}
+		data = map[string]any{}
 	}
-	data["CSRFToken"] = csrf.Token(c)
+	token, _ := c.Get(middleware.DefaultCSRFConfig.ContextKey).(string)
+	data["CSRFToken"] = token
 	return data
 }
 
-func (h *Handler) ListNotes(c *gin.Context) {
+func (h *Handler) ListNotes(c *echo.Context) error {
 	p := ListParams{
-		Query:    c.Query("q"),
-		Sort:     c.Query("sort"),
-		Order:    c.Query("order"),
+		Query:    c.QueryParam("q"),
+		Sort:     c.QueryParam("sort"),
+		Order:    c.QueryParam("order"),
 		PageSize: 10,
 	}
-	if page, err := strconv.Atoi(c.Query("page")); err == nil && page > 0 {
+	if page, err := strconv.Atoi(c.QueryParam("page")); err == nil && page > 0 {
 		p.Page = page
 	}
 
 	result, err := ListNotes(p)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list notes"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list notes"})
 	}
 
-	c.HTML(http.StatusOK, "base.html", withCSRF(c, gin.H{
+	return c.Render(http.StatusOK, "base.html", withCSRF(c, map[string]any{
 		"Result": result,
 		"Query":  p.Query,
 		"Sort":   p.Sort,
@@ -51,110 +50,96 @@ func (h *Handler) ListNotes(c *gin.Context) {
 	}))
 }
 
-func (h *Handler) ListArchive(c *gin.Context) {
+func (h *Handler) ListArchive(c *echo.Context) error {
 	notes, err := ListArchivedNotes()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to list archive"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list archive"})
 	}
-	c.HTML(http.StatusOK, "archive.html", withCSRF(c, gin.H{"Notes": notes}))
+	return c.Render(http.StatusOK, "archive.html", withCSRF(c, map[string]any{"Notes": notes}))
 }
 
-func (h *Handler) GetNote(c *gin.Context) {
+func (h *Handler) GetNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
 	note, err := GetNoteByID(noteID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-		return
+		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
 
-	c.HTML(http.StatusOK, "detail.html", withCSRF(c, gin.H{"Note": note}))
+	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
-func (h *Handler) DeleteNote(c *gin.Context) {
+func (h *Handler) DeleteNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
 	if err := SoftDeleteNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-			return
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to delete note"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to delete note"})
 	}
 
-	c.Status(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handler) RestoreNote(c *gin.Context) {
+func (h *Handler) RestoreNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
 	if err := RestoreNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-			return
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to restore note"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to restore note"})
 	}
 
-	c.Status(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handler) PermanentDeleteNote(c *gin.Context) {
+func (h *Handler) PermanentDeleteNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
 	if err := PermanentDeleteNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-			return
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to permanently delete note"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to permanently delete note"})
 	}
 
-	c.Status(http.StatusNoContent)
+	return c.NoContent(http.StatusNoContent)
 }
 
-func (h *Handler) ShowCreateForm(c *gin.Context) {
-	c.HTML(http.StatusOK, "create.html", withCSRF(c, nil))
+func (h *Handler) ShowCreateForm(c *echo.Context) error {
+	return c.Render(http.StatusOK, "create.html", withCSRF(c, nil))
 }
 
-func (h *Handler) ShowEditForm(c *gin.Context) {
+func (h *Handler) ShowEditForm(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
 	note, err := GetNoteByID(noteID)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-		return
+		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
 
-	c.HTML(http.StatusOK, "edit.html", withCSRF(c, gin.H{"Note": note}))
+	return c.Render(http.StatusOK, "edit.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
-func readUploadedImage(c *gin.Context) string {
-	file, _, err := c.Request.FormFile("image")
+func readUploadedImage(c *echo.Context) string {
+	file, _, err := c.Request().FormFile("image")
 	if err != nil {
 		return ""
 	}
@@ -166,37 +151,33 @@ func readUploadedImage(c *gin.Context) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
-func (h *Handler) CreateNote(c *gin.Context) {
-	title := c.PostForm("title")
-	content := c.PostForm("content")
+func (h *Handler) CreateNote(c *echo.Context) error {
+	title := c.FormValue("title")
+	content := c.FormValue("content")
 
 	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title required"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
 	note, err := AddNote(title, content, readUploadedImage(c))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to create note"})
-		return
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}
 
-	c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
+	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
 }
 
-func (h *Handler) UpdateNote(c *gin.Context) {
+func (h *Handler) UpdateNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid note id"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	title := c.PostForm("title")
-	content := c.PostForm("content")
+	title := c.FormValue("title")
+	content := c.FormValue("content")
 
 	if title == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "title required"})
-		return
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
 	imageData := readUploadedImage(c)
@@ -208,9 +189,8 @@ func (h *Handler) UpdateNote(c *gin.Context) {
 
 	note, err := UpdateNoteByID(noteID, title, content, imageData)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"message": "note not found"})
-		return
+		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
 
-	c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
+	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
 }
