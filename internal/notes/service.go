@@ -57,6 +57,17 @@ func InitDB(path string) error {
 		_, _ = database.Exec(migration)
 	}
 
+	for _, pragma := range []string{
+		`PRAGMA journal_mode=WAL;`,
+		`PRAGMA synchronous=NORMAL;`,
+		`PRAGMA foreign_keys=ON;`,
+	} {
+		if _, err := database.Exec(pragma); err != nil {
+			_ = database.Close()
+			return err
+		}
+	}
+
 	db = database
 	return nil
 }
