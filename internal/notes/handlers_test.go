@@ -2,7 +2,6 @@ package notes
 
 import (
 	"bytes"
-	"encoding/base64"
 	"errors"
 	"mime/multipart"
 	"net/http"
@@ -20,7 +19,7 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 	setupTestDB(t)
 
 	router := echo.New()
-	h := NewHandler()
+	h := NewHandler(t.TempDir())
 	router.POST("/note", h.CreateNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
@@ -75,8 +74,8 @@ func TestCreateNoteWithImage(t *testing.T) {
 	if note.Title != "handler title" || note.Content != "handler content" {
 		t.Fatalf("created note = %+v", note)
 	}
-	if note.ImageData != base64.StdEncoding.EncodeToString([]byte("image-bytes")) {
-		t.Fatalf("created note image data = %q", note.ImageData)
+	if note.ImageData == "" {
+		t.Fatalf("created note image data is empty, expected a filename")
 	}
 }
 

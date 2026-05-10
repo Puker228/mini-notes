@@ -8,6 +8,7 @@ Dockerfile*
 *.sqlite3
 
 dist/
+uploads/
 mini-notes
 backuply
 *.test

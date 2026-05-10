@@ -44,7 +44,7 @@
         <div>
             <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка</label>
             {{if .Note.ImageData}}
-            <img alt="" class="w-32 h-32 object-cover rounded-xl mb-2" src="data:image/*;base64,{{.Note.ImageData}}"/>
+            <img alt="" class="w-32 h-32 object-cover rounded-xl mb-2" src="/uploads/{{.Note.ImageData}}"/>
             <p class="text-zinc-500 text-xs mb-2">Загрузи новую, чтобы заменить</p>
             {{end}}
             <input

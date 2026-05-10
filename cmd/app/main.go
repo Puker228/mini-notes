@@ -48,6 +48,14 @@ func main() {
 		dbPath = "notes.db"
 	}
 
+	uploadsDir := os.Getenv("NOTES_UPLOADS_PATH")
+	if uploadsDir == "" {
+		uploadsDir = "uploads"
+	}
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		log.Fatalf("failed to create uploads directory: %s", err)
+	}
+
 	if err := notes.InitDB(dbPath); err != nil {
 		log.Fatalf("failed to initialize sqlite database: %s", err)
 	}
@@ -84,7 +92,9 @@ func main() {
 	t := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
 	router.Renderer = &echo.TemplateRenderer{Template: t}
 
-	h := notes.NewHandler()
+	router.Static("/uploads", uploadsDir)
+
+	h := notes.NewHandler(uploadsDir)
 
 	router.GET("/note", h.ListNotes)
 	router.GET("/note/new", h.ShowCreateForm)

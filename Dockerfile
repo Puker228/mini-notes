@@ -16,7 +16,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
   if [ -n "$TARGETARCH" ]; then export GOARCH="$TARGETARCH"; fi; \
   CGO_ENABLED=0 GOOS="$TARGETOS" go build -trimpath -ldflags="-s -w" -o /out/mini-notes ./cmd/app
 
-RUN mkdir -p /out/data
+RUN mkdir -p /out/data/uploads
 
 FROM scratch
 

@@ -1,20 +1,26 @@
 package notes
 
 import (
-	"encoding/base64"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
 
-type Handler struct{}
+type Handler struct {
+	uploadsDir string
+}
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(uploadsDir string) *Handler {
+	return &Handler{uploadsDir: uploadsDir}
 }
 
 func withCSRF(c *echo.Context, data map[string]any) map[string]any {
@@ -110,11 +116,17 @@ func (h *Handler) PermanentDeleteNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
+	existing, _ := GetNoteByID(noteID)
+
 	if err := PermanentDeleteNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to permanently delete note"})
+	}
+
+	if existing.ImageData != "" {
+		_ = os.Remove(filepath.Join(h.uploadsDir, existing.ImageData))
 	}
 
 	return c.NoContent(http.StatusNoContent)
@@ -138,17 +150,33 @@ func (h *Handler) ShowEditForm(c *echo.Context) error {
 	return c.Render(http.StatusOK, "edit.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
-func readUploadedImage(c *echo.Context) string {
-	file, _, err := c.Request().FormFile("image")
+func (h *Handler) saveUploadedImage(c *echo.Context) string {
+	file, header, err := c.Request().FormFile("image")
 	if err != nil {
 		return ""
 	}
 	defer file.Close()
-	data, err := io.ReadAll(io.LimitReader(file, 10<<20))
-	if err != nil || len(data) == 0 {
+
+	ext := filepath.Ext(header.Filename)
+
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
 		return ""
 	}
-	return base64.StdEncoding.EncodeToString(data)
+	filename := fmt.Sprintf("%s%s", hex.EncodeToString(b[:]), ext)
+
+	dst, err := os.Create(filepath.Join(h.uploadsDir, filename))
+	if err != nil {
+		return ""
+	}
+	defer dst.Close()
+
+	if _, err := io.Copy(dst, io.LimitReader(file, 10<<20)); err != nil {
+		_ = os.Remove(dst.Name())
+		return ""
+	}
+
+	return filename
 }
 
 func (h *Handler) CreateNote(c *echo.Context) error {
@@ -159,7 +187,7 @@ func (h *Handler) CreateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
-	note, err := AddNote(title, content, readUploadedImage(c))
+	note, err := AddNote(title, content, h.saveUploadedImage(c))
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}
@@ -180,16 +208,25 @@ func (h *Handler) UpdateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
-	imageData := readUploadedImage(c)
+	var oldImageFile string
+	imageData := h.saveUploadedImage(c)
 	if imageData == "" {
 		if existing, err := GetNoteByID(noteID); err == nil {
 			imageData = existing.ImageData
+		}
+	} else {
+		if existing, err := GetNoteByID(noteID); err == nil {
+			oldImageFile = existing.ImageData
 		}
 	}
 
 	note, err := UpdateNoteByID(noteID, title, content, imageData)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+	}
+
+	if oldImageFile != "" {
+		_ = os.Remove(filepath.Join(h.uploadsDir, oldImageFile))
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))

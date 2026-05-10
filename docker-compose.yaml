@@ -9,6 +9,7 @@ services:
       - "8800:8800"
     environment:
       NOTES_DB_PATH: /data/notes.db
+      NOTES_UPLOADS_PATH: /data/uploads
     volumes:
       - mini-notes-data:/data
 

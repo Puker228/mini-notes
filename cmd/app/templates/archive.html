@@ -21,7 +21,7 @@
             <div class="flex gap-4 items-start">
                 {{if .ImageData}}
                 <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 opacity-40"
-                     src="data:image/*;base64,{{.ImageData}}"/>
+                     src="/uploads/{{.ImageData}}"/>
                 {{end}}
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold text-lg text-zinc-500">{{.Title}}</p>
