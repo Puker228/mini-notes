@@ -1,12 +1,10 @@
-# syntax=docker/dockerfile:1.7
-
 FROM --platform=$BUILDPLATFORM golang:1.26.1-alpine AS builder
 
 WORKDIR /src
 
 COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download
+  go mod download
 
 COPY cmd ./cmd
 COPY internal ./internal
@@ -14,9 +12,9 @@ COPY internal ./internal
 ARG TARGETOS=linux
 ARG TARGETARCH
 RUN --mount=type=cache,target=/go/pkg/mod \
-    --mount=type=cache,target=/root/.cache/go-build \
-    if [ -n "$TARGETARCH" ]; then export GOARCH="$TARGETARCH"; fi; \
-    CGO_ENABLED=0 GOOS="$TARGETOS" go build -trimpath -ldflags="-s -w" -o /out/mini-notes ./cmd/app
+  --mount=type=cache,target=/root/.cache/go-build \
+  if [ -n "$TARGETARCH" ]; then export GOARCH="$TARGETARCH"; fi; \
+  CGO_ENABLED=0 GOOS="$TARGETOS" go build -trimpath -ldflags="-s -w" -o /out/mini-notes ./cmd/app
 
 RUN mkdir -p /out/data
 
