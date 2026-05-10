@@ -1,0 +1,16 @@
+services:
+  mini-notes:
+    build:
+      context: .
+    image: mini-notes:latest
+    container_name: mini-notes
+    restart: always
+    ports:
+      - "8800:8800"
+    environment:
+      NOTES_DB_PATH: /data/notes.db
+    volumes:
+      - mini-notes-data:/data
+
+volumes:
+  mini-notes-data:
