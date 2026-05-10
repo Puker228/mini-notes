@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
@@ -13,10 +13,10 @@
     <div class="flex items-center justify-between mb-6">
         <h1 class="text-3xl font-bold tracking-tight">📝 Mini Notes</h1>
         <div class="flex items-center gap-3">
-            <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors" href="/archive">Архив</a>
+            <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors" href="/archive">Archive</a>
             <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
                href="/note/new">+
-                Новая</a>
+                New</a>
         </div>
     </div>
 
@@ -24,23 +24,23 @@
         <input
                 class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors text-sm"
                 name="q"
-                placeholder="Поиск по заголовку и тексту..."
+                placeholder="Search by title and text..."
                 type="text"
                 value="{{.Query}}"
         />
         <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
                 name="sort">
-            <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Создано</option>
-            <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Изменено</option>
-            <option value="title" {{if eq .Sort "title"}}selected{{end}}>Заголовок</option>
+            <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Created</option>
+            <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Modified</option>
+            <option value="title" {{if eq .Sort "title"}}selected{{end}}>Title</option>
         </select>
         <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
                 name="order">
-            <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Новые</option>
-            <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Старые</option>
+            <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Newest</option>
+            <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Oldest</option>
         </select>
         <button class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300"
-                type="submit">Найти
+                type="submit">Search
         </button>
     </form>
 
@@ -65,15 +65,15 @@
 
     {{if gt .Result.TotalPages 1}}
     <div class="flex items-center justify-between mt-6">
-        <span class="text-zinc-500 text-sm">Стр. {{.Result.Page}} из {{.Result.TotalPages}} · {{.Result.Total}} заметок</span>
+        <span class="text-zinc-500 text-sm">Page {{.Result.Page}} of {{.Result.TotalPages}} · {{.Result.Total}} notes</span>
         <div class="flex gap-2">
             {{if .Result.HasPrev}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.PrevPage}}">← Назад</a>
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.PrevPage}}">← Back</a>
             {{end}}
             {{if .Result.HasNext}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.NextPage}}">Вперёд →</a>
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.NextPage}}">Next →</a>
             {{end}}
         </div>
     </div>
@@ -81,7 +81,7 @@
 
     {{else}}
     <p class="text-zinc-500">
-        {{if .Query}}Ничего не найдено по запросу «{{.Query}}».{{else}}Заметок пока нет.{{end}}
+        {{if .Query}}Nothing found for "{{.Query}}".{{else}}No notes yet.{{end}}
     </p>
     {{end}}
 

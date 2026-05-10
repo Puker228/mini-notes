@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>{{if .Note}}Редактировать {{.Note.Title}}{{else}}Редактировать заметку{{end}} — Mini Notes</title>
+    <title>{{if .Note}}Edit {{.Note.Title}}{{else}}Edit Note{{end}} — Mini Notes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
@@ -11,41 +11,41 @@
 <div class="max-w-2xl mx-auto px-4 py-12">
 
     <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block"
-       href="{{if .Note}}/note/{{.Note.ID}}{{else}}/note{{end}}">← Назад</a>
+       href="{{if .Note}}/note/{{.Note.ID}}{{else}}/note{{end}}">← Back</a>
 
     {{if .Note}}
-    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Редактировать заметку</h1>
+    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Edit Note</h1>
 
     <form action="/note/{{.Note.ID}}/edit" class="space-y-5" enctype="multipart/form-data" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="title">Title</label>
             <input
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
                     id="title"
                     name="title"
-                    placeholder="Заголовок заметки"
+                    placeholder="Note title"
                     required
                     type="text"
                     value="{{.Note.Title}}"
             />
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="content">Содержание</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="content">Content</label>
             <textarea
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
                     id="content"
                     name="content"
-                    placeholder="Текст заметки..."
+                    placeholder="Note text..."
                     required
                     rows="6"
             >{{.Note.Content}}</textarea>
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="image">Image</label>
             {{if .Note.ImageData}}
             <img alt="" class="w-32 h-32 object-cover rounded-xl mb-2" src="/uploads/{{.Note.ImageData}}"/>
-            <p class="text-zinc-500 text-xs mb-2">Загрузи новую, чтобы заменить</p>
+            <p class="text-zinc-500 text-xs mb-2">Upload a new one to replace</p>
             {{end}}
             <input
                     accept="image/*"
@@ -59,11 +59,11 @@
                 class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
                 type="submit"
         >
-            Сохранить
+            Save
         </button>
     </form>
     {{else}}
-    <p class="text-zinc-500 mt-4">Заметка не найдена.</p>
+    <p class="text-zinc-500 mt-4">Note not found.</p>
     {{end}}
 
 </div>

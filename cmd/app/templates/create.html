@@ -1,45 +1,45 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Новая заметка — Mini Notes</title>
+    <title>New Note — Mini Notes</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
 <div class="max-w-2xl mx-auto px-4 py-12">
 
-    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← Все
-        заметки</a>
+    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← All
+        notes</a>
 
-    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Новая заметка</h1>
+    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">New Note</h1>
 
     <form action="/note" class="space-y-5" enctype="multipart/form-data" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="title">Заголовок</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="title">Title</label>
             <input
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
                     id="title"
                     name="title"
-                    placeholder="Заголовок заметки"
+                    placeholder="Note title"
                     required
                     type="text"
             />
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="content">Содержание</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="content">Content</label>
             <textarea
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
                     id="content"
                     name="content"
-                    placeholder="Текст заметки..."
+                    placeholder="Note text..."
                     rows="6"
             ></textarea>
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="image">Картинка (необязательно)</label>
+            <label class="block text-sm text-zinc-400 mb-1" for="image">Image (optional)</label>
             <input
                     accept="image/*"
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
@@ -52,7 +52,7 @@
                 class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
                 type="submit"
         >
-            Создать
+            Create
         </button>
     </form>
 
