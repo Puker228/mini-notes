@@ -1,4 +1,4 @@
-.PHONY: build run run-bin start release test fmt build-all clean docker-build docker-run docker-up docker-down docker-logs
+.PHONY: build run run-bin start release test fmt build-all clean-apps clean-all docker-build docker-run docker-up docker-down docker-logs
 
 APP := mini-notes
 CMD := ./cmd/app
@@ -28,9 +28,13 @@ test:
 fmt:
 	gofmt -w cmd internal
 
-clean:
+clean-apps:
 	rm -f $(APP)
 	rm -rf $(DIST_DIR)/
+
+clean-all: clean-apps
+	rm -rf uploads/
+	rm -f notes.db.*
 
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
