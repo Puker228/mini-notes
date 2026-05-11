@@ -10,6 +10,7 @@ services:
     environment:
       NOTES_DB_PATH: /data/notes.db
       NOTES_UPLOADS_PATH: /data/uploads
+      NOTES_LOG_PATH: /data/logs/mini-notes.log
     volumes:
       - mini-notes-data:/data
 

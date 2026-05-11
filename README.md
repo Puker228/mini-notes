@@ -35,6 +35,12 @@ http://localhost:8800/note
 By default, the SQLite database is created as `notes.db` in the project
 directory.
 
+Write logs to a file:
+
+```sh
+NOTES_LOG_PATH=mini-notes.log go run ./cmd/app
+```
+
 ## Run with Docker
 
 Build the image:
@@ -78,7 +84,8 @@ docker compose down
 ```
 
 The Compose setup exposes port `8800`, sets `NOTES_DB_PATH=/data/notes.db`, and
-uses the named volume `mini-notes-data` for persistent SQLite storage.
+`NOTES_LOG_PATH=/data/logs/mini-notes.log`, and uses the named volume
+`mini-notes-data` for persistent SQLite storage and logs.
 
 ## Configuration
 
@@ -86,6 +93,12 @@ You can change the database path with `NOTES_DB_PATH`:
 
 ```sh
 NOTES_DB_PATH=/tmp/mini-notes.db go run ./cmd/app
+```
+
+You can write logs to a file with `NOTES_LOG_PATH`:
+
+```sh
+NOTES_LOG_PATH=/tmp/mini-notes.log go run ./cmd/app
 ```
 
 ## Make Commands
