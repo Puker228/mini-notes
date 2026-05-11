@@ -55,6 +55,7 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 	router.POST("/note/private", h.CreatePrivateNote)
 	router.POST("/note/:id/decrypt", h.DecryptNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
+	router.POST("/note/:id/pin", h.TogglePinNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 	router.POST("/note/:id/restore", h.RestoreNote)
 	router.DELETE("/note/:id/permanent", h.PermanentDeleteNote)
@@ -312,6 +313,30 @@ func TestDeleteRestorePermanent(t *testing.T) {
 	}
 	if _, err := GetNoteByID(created.ID); !errors.Is(err, ErrNoteNotFound) {
 		t.Fatalf("GetNoteByID() after permanent delete error = %v, want %v", err, ErrNoteNotFound)
+	}
+}
+
+func TestTogglePinNoteHandler(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	created, err := AddNote("title", "content", "")
+	if err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost, "/note/"+strconv.FormatInt(created.ID, 10)+"/pin", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusNoContent {
+		t.Fatalf("TogglePinNote status = %d, want %d", rec.Code, http.StatusNoContent)
+	}
+	got, err := GetNoteByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetNoteByID() error = %v", err)
+	}
+	if !got.IsPinned {
+		t.Fatalf("GetNoteByID() = %+v, want pinned note", got)
 	}
 }
 

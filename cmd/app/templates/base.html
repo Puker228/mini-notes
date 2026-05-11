@@ -54,20 +54,31 @@
     {{if .Result.Notes}}
     <ul class="space-y-3">
         {{range .Result.Notes}}
-        <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
-            <a class="flex gap-4 items-start" href="/note/{{.ID}}">
-                {{if and .ImageData (not .IsEncrypted)}}
-                <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0"
-                     src="/uploads/{{.ImageData}}"/>
-                {{end}}
-                <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
-                    {{if not .IsEncrypted}}
-                    <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
-                    <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
+        <li class="bg-zinc-900 border {{if .IsPinned}}border-zinc-500{{else}}border-zinc-800{{end}} rounded-xl p-5 hover:border-zinc-600 transition-colors">
+            <div class="flex gap-4 items-start">
+                <a class="flex gap-4 items-start min-w-0 flex-1" href="/note/{{.ID}}">
+                    {{if and .ImageData (not .IsEncrypted)}}
+                    <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0"
+                         src="/uploads/{{.ImageData}}"/>
                     {{end}}
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                            {{if .IsPinned}}<span class="text-zinc-400 text-sm" title="Pinned">📌</span>{{end}}
+                            <p class="font-semibold text-lg text-zinc-100 truncate">{{.Title}}</p>
+                        </div>
+                        {{if not .IsEncrypted}}
+                        <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                        <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
+                        {{end}}
+                    </div>
+                </a>
+                <div class="shrink-0">
+                    <button class="text-sm {{if .IsPinned}}text-zinc-100 border-zinc-500{{else}}text-zinc-400 border-zinc-700{{end}} hover:text-white hover:border-zinc-400 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                            onclick="togglePin({{.ID}})">
+                        {{if .IsPinned}}Unpin{{else}}Pin{{end}}
+                    </button>
                 </div>
-            </a>
+            </div>
         </li>
         {{end}}
     </ul>
@@ -95,5 +106,17 @@
     {{end}}
 
 </div>
+<script>
+    const csrfToken = () => document.querySelector('meta[name="csrf-token"]').content
+
+    function togglePin(id) {
+        fetch('/note/' + id + '/pin', {
+            method: 'POST',
+            headers: {'X-CSRF-Token': csrfToken()}
+        }).then(r => {
+            if (r.ok) window.location.reload()
+        })
+    }
+</script>
 </body>
 </html>

@@ -134,6 +134,22 @@ func (h *Handler) DeleteNote(c *echo.Context) error {
 	return c.NoContent(http.StatusNoContent)
 }
 
+func (h *Handler) TogglePinNote(c *echo.Context) error {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
+	}
+
+	if _, err := TogglePinNoteByID(noteID); err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to toggle pin"})
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
 func (h *Handler) RestoreNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

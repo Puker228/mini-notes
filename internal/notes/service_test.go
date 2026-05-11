@@ -195,6 +195,49 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 	}
 }
 
+func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
+	setupTestDB(t)
+
+	alpha, err := AddNote("Alpha", "first", "")
+	if err != nil {
+		t.Fatalf("AddNote(alpha) error = %v", err)
+	}
+	beta, err := AddNote("Beta", "second", "")
+	if err != nil {
+		t.Fatalf("AddNote(beta) error = %v", err)
+	}
+
+	pinned, err := TogglePinNoteByID(alpha.ID)
+	if err != nil {
+		t.Fatalf("TogglePinNoteByID() error = %v", err)
+	}
+	if !pinned.IsPinned {
+		t.Fatalf("TogglePinNoteByID() = %+v, want pinned", pinned)
+	}
+
+	result, err := ListNotes(ListParams{Sort: "title", Order: "desc"})
+	if err != nil {
+		t.Fatalf("ListNotes() error = %v", err)
+	}
+	if len(result.Notes) != 2 {
+		t.Fatalf("ListNotes() = %+v", result)
+	}
+	if result.Notes[0].ID != alpha.ID || !result.Notes[0].IsPinned {
+		t.Fatalf("ListNotes() first note = %+v, want pinned Alpha before Beta", result.Notes[0])
+	}
+	if result.Notes[1].ID != beta.ID {
+		t.Fatalf("ListNotes() second note = %+v, want Beta", result.Notes[1])
+	}
+
+	unpinned, err := TogglePinNoteByID(alpha.ID)
+	if err != nil {
+		t.Fatalf("TogglePinNoteByID(unpin) error = %v", err)
+	}
+	if unpinned.IsPinned {
+		t.Fatalf("TogglePinNoteByID(unpin) = %+v, want unpinned", unpinned)
+	}
+}
+
 func TestArchiveRestoreDelete(t *testing.T) {
 	setupTestDB(t)
 
@@ -278,6 +321,10 @@ func TestStorageNotFound(t *testing.T) {
 	}{
 		{name: "update", fn: func() error {
 			_, err := UpdateNoteByID(404, "title", "content", "")
+			return err
+		}},
+		{name: "toggle pin", fn: func() error {
+			_, err := TogglePinNoteByID(404)
 			return err
 		}},
 		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(404) }},
