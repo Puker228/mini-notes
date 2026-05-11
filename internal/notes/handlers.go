@@ -195,6 +195,23 @@ func (h *Handler) CreateNote(c *echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
 }
 
+func (h *Handler) CreatePrivateNote(c *echo.Context) error {
+	title := c.FormValue("title")
+	content := c.FormValue("content")
+	password := c.FormValue("password")
+
+	if title == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
+	}
+
+	note, err := AddPrivateNote(title, content, h.saveUploadedImage(c), password)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
+}
+
 func (h *Handler) UpdateNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

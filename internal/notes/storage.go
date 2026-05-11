@@ -41,7 +41,8 @@ func InitDB(path string) error {
 			updated_at TEXT NOT NULL DEFAULT '',
 			deleted_at TEXT,
 			encryption_salt TEXT,
-			encryption_nonce TEXT
+			encryption_nonce TEXT,
+			is_encypted BOOL DEFAULT 0
 		);
 	`); err != nil {
 		_ = database.Close()
@@ -55,6 +56,7 @@ func InitDB(path string) error {
 		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
+		`ALTER TABLE notes ADD COLUMN is_encypted BOOL DEFAULT 0;`,
 	} {
 		_, _ = database.Exec(migration)
 	}
@@ -235,9 +237,9 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 	}
 
 	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce)
-		VALUES (?, ?, ?, ?, ?);
-	`, title, cipherText, imageData, now, now, salt, nonce)
+		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encypted)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
+	`, title, cipherText, imageData, now, now, salt, nonce, true)
 	if err != nil {
 		return Note{}, err
 	}

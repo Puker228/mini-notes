@@ -34,7 +34,7 @@ clean-apps:
 
 clean-all: clean-apps
 	rm -rf uploads/
-	rm -f notes.db.*
+	rm -f notes.db*
 
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
