@@ -163,7 +163,8 @@ Follows Docker Compose logs for the app service.
 cmd/app/main.go              Application entry point and HTTP routes
 cmd/app/templates/           HTML templates embedded into the binary
 internal/notes/model.go      Note model
-internal/notes/service.go    SQLite storage logic
+internal/notes/service.go    Notes service API
+internal/notes/storage.go    SQLite storage logic
 internal/notes/handlers.go   HTTP handlers
 internal/notes/*_test.go     Tests
 Dockerfile                   Multi-stage Docker build
