@@ -135,14 +135,14 @@ func TestCreatePrivateNote(t *testing.T) {
 
 	var storedContent string
 	var isEncrypted bool
-	if err := db.QueryRow(`SELECT content, is_encypted FROM notes WHERE id = 1;`).Scan(&storedContent, &isEncrypted); err != nil {
+	if err := db.QueryRow(`SELECT content, is_encrypted FROM notes WHERE id = 1;`).Scan(&storedContent, &isEncrypted); err != nil {
 		t.Fatalf("QueryRow() error = %v", err)
 	}
 	if storedContent == "private content" {
 		t.Fatalf("stored content is plaintext, want encrypted content")
 	}
 	if !isEncrypted {
-		t.Fatalf("is_encypted = false, want true")
+		t.Fatalf("is_encrypted = false, want true")
 	}
 
 	result, err := ListNotes(ListParams{})
