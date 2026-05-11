@@ -44,6 +44,38 @@ func InitDB(path string) error {
 			encryption_nonce TEXT,
 			is_encrypted BOOL DEFAULT 0
 		);
+		
+		CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts
+		USING fts5(
+    	title,
+    	content,
+    	content='notes',
+    	content_rowid='id'
+		);
+		
+		CREATE TRIGGER IF NOT EXISTS notes_ai
+		AFTER INSERT ON notes
+		BEGIN
+    	INSERT INTO notes_fts(rowid, title, content)
+    	VALUES (new.id, new.title, new.content);
+		END;
+		
+		CREATE TRIGGER IF NOT EXISTS notes_ad
+		AFTER DELETE ON notes
+		BEGIN
+    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
+    	VALUES ('delete', old.id, old.title, old.content);
+		END;
+	
+		CREATE TRIGGER IF NOT EXISTS notes_au
+		AFTER UPDATE ON notes
+		BEGIN
+    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
+    	VALUES ('delete', old.id, old.title, old.content);
+
+    	INSERT INTO notes_fts(rowid, title, content)
+    	VALUES (new.id, new.title, new.content);
+		END;
 	`); err != nil {
 		_ = database.Close()
 		return err
@@ -59,6 +91,11 @@ func InitDB(path string) error {
 		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
 	} {
 		_, _ = database.Exec(migration)
+	}
+
+	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
+		_ = database.Close()
+		return err
 	}
 
 	for _, pragma := range []string{
@@ -101,6 +138,15 @@ func scanNote(s scanner) (Note, error) {
 	return note, nil
 }
 
+func buildFTSQuery(query string) string {
+	parts := strings.Fields(query)
+	for i, part := range parts {
+		part = strings.ReplaceAll(part, `"`, `""`)
+		parts[i] = `"` + part + `"`
+	}
+	return strings.Join(parts, " AND ")
+}
+
 func listNotes(p ListParams) (ListResult, error) {
 	if p.PageSize <= 0 {
 		p.PageSize = 10
@@ -119,12 +165,19 @@ func listNotes(p ListParams) (ListResult, error) {
 		sortOrder = "ASC"
 	}
 
-	likeQ := "%" + p.Query + "%"
 	filters := []string{
 		"(deleted_at IS NULL OR deleted_at = '')",
-		"(title LIKE ? OR content LIKE ?)",
 	}
-	args := []any{likeQ, likeQ}
+	args := []any{}
+	if query := buildFTSQuery(p.Query); query != "" {
+		likeQ := "%" + p.Query + "%"
+		filters = append(filters, `notes.id IN (
+			SELECT rowid FROM notes_fts WHERE notes_fts MATCH ?
+			UNION
+			SELECT id FROM notes WHERE title LIKE ? OR content LIKE ?
+		)`)
+		args = append(args, query, likeQ, likeQ)
+	}
 	if p.EncryptedOnly {
 		filters = append(filters, "is_encrypted = 1")
 	}
@@ -140,10 +193,10 @@ func listNotes(p ListParams) (ListResult, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
+		SELECT notes.id, notes.title, notes.content, notes.image_data, notes.created_at, notes.updated_at, notes.deleted_at, notes.is_encrypted
 		FROM notes
 		WHERE %s
-		ORDER BY %s %s
+		ORDER BY notes.%s %s
 		LIMIT ? OFFSET ?
 	`, whereClause, sortCol, sortOrder)
 

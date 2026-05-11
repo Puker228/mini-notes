@@ -151,6 +151,23 @@ func TestListNotesFilters(t *testing.T) {
 	}
 }
 
+func TestListNotesSearchMatchesSubstring(t *testing.T) {
+	setupTestDB(t)
+
+	created, err := AddNote("Database", "sqlite", "")
+	if err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+
+	result, err := ListNotes(ListParams{Query: "lite"})
+	if err != nil {
+		t.Fatalf("ListNotes(substring search) error = %v", err)
+	}
+	if result.Total != 1 || len(result.Notes) != 1 || result.Notes[0].ID != created.ID {
+		t.Fatalf("ListNotes(substring search) = %+v, want sqlite note", result)
+	}
+}
+
 func TestListNotesEncryptedOnly(t *testing.T) {
 	setupTestDB(t)
 
