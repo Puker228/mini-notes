@@ -39,7 +39,9 @@ func InitDB(path string) error {
 			image_data TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL DEFAULT '',
 			updated_at TEXT NOT NULL DEFAULT '',
-			deleted_at TEXT
+			deleted_at TEXT,
+			encryption_salt TEXT,
+			encryption_nonce TEXT
 		);
 	`); err != nil {
 		_ = database.Close()
@@ -51,6 +53,8 @@ func InitDB(path string) error {
 		`ALTER TABLE notes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`,
 		`ALTER TABLE notes ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';`,
 		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
+		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
+		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
 	} {
 		_, _ = database.Exec(migration)
 	}
@@ -222,12 +226,18 @@ func addNote(title, content, imageData string) (Note, error) {
 func addPrivateNote(title, content, imageData, password string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
 
-	// encryptor = PasswordEncryptor{password: password}
+	encryptor := NewPasswordEncryptor(password)
+	plainText := []byte(content)
+
+	salt, nonce, cipherText, err := encryptor.Encrypt(plainText)
+	if err != nil {
+		return Note{}, err
+	}
 
 	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at)
+		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce)
 		VALUES (?, ?, ?, ?, ?);
-	`, title, content, imageData, now, now)
+	`, title, cipherText, imageData, now, now, salt, nonce)
 	if err != nil {
 		return Note{}, err
 	}
