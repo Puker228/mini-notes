@@ -4,12 +4,15 @@ import (
 	"context"
 	"embed"
 	"html/template"
+	"io"
 	"io/fs"
 	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -44,6 +47,25 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	logOutput := io.Writer(os.Stdout)
+	logPath := os.Getenv("NOTES_LOG_PATH")
+	if logPath != "" {
+		if err := os.MkdirAll(filepath.Dir(logPath), 0o755); err != nil {
+			log.Fatalf("failed to create log directory: %s", err)
+		}
+		logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+		if err != nil {
+			log.Fatalf("failed to open log file: %s", err)
+		}
+		defer func() {
+			if err := logFile.Close(); err != nil {
+				log.Println("failed to close log file:", err)
+			}
+		}()
+		logOutput = io.MultiWriter(os.Stdout, logFile)
+		log.SetOutput(logOutput)
+	}
+
 	dbPath := os.Getenv("NOTES_DB_PATH")
 	if dbPath == "" {
 		dbPath = "notes.db"
@@ -53,7 +75,7 @@ func main() {
 	if uploadsDir == "" {
 		uploadsDir = "uploads"
 	}
-	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
 		log.Fatalf("failed to create uploads directory: %s", err)
 	}
 
@@ -66,8 +88,35 @@ func main() {
 		}
 	}()
 
+	logger := slog.New(slog.NewJSONHandler(logOutput, nil))
+
 	router := echo.New()
-	router.Use(middleware.RequestLogger())
+	router.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+		LogStatus:   true,
+		LogURI:      true,
+		HandleError: true,
+		LogValuesFunc: func(c *echo.Context, v middleware.RequestLoggerValues) error {
+			if v.Error == nil {
+				logger.LogAttrs(
+					context.Background(), slog.LevelInfo, "REQUEST",
+					slog.String("method", v.Method),
+					slog.String("uri", v.URI),
+					slog.Int("status", v.Status),
+					slog.Duration("latency", v.Latency),
+				)
+			} else {
+				logger.LogAttrs(
+					context.Background(), slog.LevelError, "REQUEST_ERROR",
+					slog.String("method", v.Method),
+					slog.String("uri", v.URI),
+					slog.Int("status", v.Status),
+					slog.String("err", v.Error.Error()),
+				)
+			}
+			return nil
+		},
+	}))
+	// router.Use(middleware.RequestLogger())
 	router.Use(middleware.Recover())
 	router.Use(csrfMiddleware())
 
