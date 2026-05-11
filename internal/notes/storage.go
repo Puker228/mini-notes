@@ -42,6 +42,7 @@ func InitDB(path string) error {
 			deleted_at TEXT,
 			encryption_salt TEXT,
 			encryption_nonce TEXT,
+			is_pinned BOOL DEFAULT 0,
 			is_encrypted BOOL DEFAULT 0
 		);
 		
@@ -88,6 +89,7 @@ func InitDB(path string) error {
 		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
+		`ALTER TABLE notes ADD COLUMN is_pinned BOOL DEFAULT 0;`,
 		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
 	} {
 		_, _ = database.Exec(migration)
@@ -126,7 +128,7 @@ func scanNote(s scanner) (Note, error) {
 	var note Note
 	var createdAt, updatedAt string
 	var deletedAt sql.NullString
-	if err := s.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsEncrypted); err != nil {
+	if err := s.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsPinned, &note.IsEncrypted); err != nil {
 		return Note{}, err
 	}
 	note.CreatedAt, _ = time.Parse(timeLayout, createdAt)
@@ -193,10 +195,10 @@ func listNotes(p ListParams) (ListResult, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT notes.id, notes.title, notes.content, notes.image_data, notes.created_at, notes.updated_at, notes.deleted_at, notes.is_encrypted
+		SELECT notes.id, notes.title, notes.content, notes.image_data, notes.created_at, notes.updated_at, notes.deleted_at, notes.is_pinned, notes.is_encrypted
 		FROM notes
 		WHERE %s
-		ORDER BY notes.%s %s
+		ORDER BY notes.is_pinned DESC, notes.%s %s
 		LIMIT ? OFFSET ?
 	`, whereClause, sortCol, sortOrder)
 
@@ -240,7 +242,7 @@ func listNotes(p ListParams) (ListResult, error) {
 
 func listArchivedNotes() ([]Note, error) {
 	rows, err := db.Query(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 		FROM notes
 		WHERE deleted_at IS NOT NULL AND deleted_at != ''
 		ORDER BY deleted_at DESC
@@ -324,7 +326,7 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 
 func getNoteByID(ID int64) (Note, error) {
 	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 		FROM notes
 		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 	`, ID)
@@ -342,11 +344,11 @@ func decryptNoteByID(ID int64, password string) (Note, error) {
 	var ciphertext, salt, nonce []byte
 
 	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted, encryption_salt, encryption_nonce
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted, encryption_salt, encryption_nonce
 		FROM notes
 		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 	`, ID)
-	if err := row.Scan(&note.ID, &note.Title, &ciphertext, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsEncrypted, &salt, &nonce); err != nil {
+	if err := row.Scan(&note.ID, &note.Title, &ciphertext, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsPinned, &note.IsEncrypted, &salt, &nonce); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Note{}, ErrNoteNotFound
 		}
@@ -394,6 +396,27 @@ func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t}, nil
+}
+
+func togglePinNoteByID(ID int64) (Note, error) {
+	result, err := db.Exec(`
+		UPDATE notes
+		SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
+		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+	`, ID)
+	if err != nil {
+		return Note{}, err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return Note{}, err
+	}
+	if rowsAffected == 0 {
+		return Note{}, ErrNoteNotFound
+	}
+
+	return getNoteByID(ID)
 }
 
 func softDeleteNoteByID(ID int64) error {

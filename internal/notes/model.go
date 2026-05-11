@@ -7,6 +7,7 @@ type Note struct {
 	Title       string
 	Content     string
 	ImageData   string
+	IsPinned    bool
 	IsEncrypted bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

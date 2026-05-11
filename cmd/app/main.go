@@ -160,6 +160,7 @@ func main() {
 	router.POST("/note/private", h.CreatePrivateNote)
 	router.POST("/note/:id/decrypt", h.DecryptNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
+	router.POST("/note/:id/pin", h.TogglePinNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 	router.POST("/note/:id/restore", h.RestoreNote)
 	router.DELETE("/note/:id/permanent", h.PermanentDeleteNote)

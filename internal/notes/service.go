@@ -34,6 +34,10 @@ func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	return updateNoteByID(ID, title, content, imageData)
 }
 
+func TogglePinNoteByID(ID int64) (Note, error) {
+	return togglePinNoteByID(ID)
+}
+
 func SoftDeleteNoteByID(ID int64) error {
 	return softDeleteNoteByID(ID)
 }
