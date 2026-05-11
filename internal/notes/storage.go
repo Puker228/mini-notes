@@ -44,6 +44,38 @@ func InitDB(path string) error {
 			encryption_nonce TEXT,
 			is_encrypted BOOL DEFAULT 0
 		);
+		
+		CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts
+		USING fts5(
+    	title,
+    	content,
+    	content='notes',
+    	content_rowid='id'
+		);
+		
+		CREATE TRIGGER IF NOT EXISTS notes_ai
+		AFTER INSERT ON notes
+		BEGIN
+    	INSERT INTO notes_fts(rowid, title, content)
+    	VALUES (new.id, new.title, new.content);
+		END;
+		
+		CREATE TRIGGER IF NOT EXISTS notes_ad
+		AFTER DELETE ON notes
+		BEGIN
+    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
+    	VALUES ('delete', old.id, old.title, old.content);
+		END;
+	
+		CREATE TRIGGER IF NOT EXISTS notes_au
+		AFTER UPDATE ON notes
+		BEGIN
+    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
+    	VALUES ('delete', old.id, old.title, old.content);
+
+    	INSERT INTO notes_fts(rowid, title, content)
+    	VALUES (new.id, new.title, new.content);
+		END;
 	`); err != nil {
 		_ = database.Close()
 		return err
