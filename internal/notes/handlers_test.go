@@ -3,15 +3,26 @@ package notes
 import (
 	"bytes"
 	"errors"
+	"html/template"
+	"io"
 	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v5"
 )
+
+type testRenderer struct {
+	templates *template.Template
+}
+
+func (r *testRenderer) Render(_ *echo.Context, w io.Writer, name string, data any) error {
+	return r.templates.ExecuteTemplate(w, name, data)
+}
 
 func setupHandlerRouter(t *testing.T) *echo.Echo {
 	t.Helper()
@@ -19,8 +30,30 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 	setupTestDB(t)
 
 	router := echo.New()
+	router.Renderer = &testRenderer{
+		templates: template.Must(template.New("").Funcs(template.FuncMap{
+			"formatDate": func(v any) string {
+				switch t := v.(type) {
+				case time.Time:
+					if t.IsZero() {
+						return "—"
+					}
+					return t.Format("02.01.2006 15:04")
+				case *time.Time:
+					if t == nil || t.IsZero() {
+						return "—"
+					}
+					return t.Format("02.01.2006 15:04")
+				}
+				return "—"
+			},
+			"urlEncode": url.QueryEscape,
+		}).ParseGlob("../../cmd/app/templates/*.html")),
+	}
 	h := NewHandler(t.TempDir())
 	router.POST("/note", h.CreateNote)
+	router.POST("/note/private", h.CreatePrivateNote)
+	router.POST("/note/:id/decrypt", h.DecryptNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 	router.POST("/note/:id/restore", h.RestoreNote)
@@ -76,6 +109,115 @@ func TestCreateNoteWithImage(t *testing.T) {
 	}
 	if note.ImageData == "" {
 		t.Fatalf("created note image data is empty, expected a filename")
+	}
+}
+
+func TestCreatePrivateNote(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	form := url.Values{
+		"title":    {"private title"},
+		"content":  {"private content"},
+		"password": {"secret"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/note/private", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("CreatePrivateNote status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/note/1" {
+		t.Fatalf("CreatePrivateNote Location = %q, want /note/1", got)
+	}
+
+	var storedContent string
+	var isEncrypted bool
+	if err := db.QueryRow(`SELECT content, is_encypted FROM notes WHERE id = 1;`).Scan(&storedContent, &isEncrypted); err != nil {
+		t.Fatalf("QueryRow() error = %v", err)
+	}
+	if storedContent == "private content" {
+		t.Fatalf("stored content is plaintext, want encrypted content")
+	}
+	if !isEncrypted {
+		t.Fatalf("is_encypted = false, want true")
+	}
+
+	result, err := ListNotes(ListParams{})
+	if err != nil {
+		t.Fatalf("ListNotes() error = %v", err)
+	}
+	if len(result.Notes) != 1 || !result.Notes[0].IsEncrypted {
+		t.Fatalf("ListNotes() note = %+v, want encrypted note", result.Notes)
+	}
+}
+
+func TestCreatePrivateNoteNeedsPassword(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	form := url.Values{
+		"title":   {"private title"},
+		"content": {"private content"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/note/private", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("CreatePrivateNote status = %d, want %d", rec.Code, http.StatusBadRequest)
+	}
+}
+
+func TestDecryptPrivateNote(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	form := url.Values{"password": {"secret"}}
+	req := httptest.NewRequest(http.MethodPost, "/note/"+strconv.FormatInt(created.ID, 10)+"/decrypt", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("DecryptNote status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("private content")) {
+		t.Fatalf("DecryptNote body does not contain decrypted content: %s", rec.Body.String())
+	}
+}
+
+func TestDecryptPrivateNoteWrongPassword(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	form := url.Values{"password": {"wrong"}}
+	req := httptest.NewRequest(http.MethodPost, "/note/"+strconv.FormatInt(created.ID, 10)+"/decrypt", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Fatalf("DecryptNote status = %d, want %d", rec.Code, http.StatusUnauthorized)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("Wrong password")) {
+		t.Fatalf("DecryptNote body does not contain password error: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte("private content")) {
+		t.Fatalf("DecryptNote body contains decrypted content after wrong password: %s", rec.Body.String())
 	}
 }
 

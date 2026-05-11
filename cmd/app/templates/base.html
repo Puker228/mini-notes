@@ -15,12 +15,15 @@
         <div class="flex items-center gap-3">
             <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors" href="/archive">Archive</a>
             <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
+               href="/note/private/new">🔒
+                Private</a>
+            <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
                href="/note/new">+
                 New</a>
         </div>
     </div>
 
-    <form action="/note" class="flex gap-2 mb-6" method="GET">
+    <form action="/note" class="flex flex-wrap gap-2 mb-6" method="GET">
         <input
                 class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors text-sm"
                 name="q"
@@ -39,6 +42,10 @@
             <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Newest</option>
             <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Oldest</option>
         </select>
+        <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm whitespace-nowrap cursor-pointer">
+            <input class="accent-zinc-100" name="encrypted" type="checkbox" value="1" {{if .EncryptedOnly}}checked{{end}}/>
+            Encrypted only
+        </label>
         <button class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300"
                 type="submit">Search
         </button>
@@ -49,14 +56,16 @@
         {{range .Result.Notes}}
         <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5 hover:border-zinc-600 transition-colors">
             <a class="flex gap-4 items-start" href="/note/{{.ID}}">
-                {{if .ImageData}}
+                {{if and .ImageData (not .IsEncrypted)}}
                 <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0"
                      src="/uploads/{{.ImageData}}"/>
                 {{end}}
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold text-lg text-zinc-100">{{.Title}}</p>
+                    {{if not .IsEncrypted}}
                     <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
                     <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
+                    {{end}}
                 </div>
             </a>
         </li>
@@ -69,11 +78,11 @@
         <div class="flex gap-2">
             {{if .Result.HasPrev}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.PrevPage}}">← Back</a>
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.PrevPage}}">← Back</a>
             {{end}}
             {{if .Result.HasNext}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}&page={{.Result.NextPage}}">Next →</a>
+               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.NextPage}}">Next →</a>
             {{end}}
         </div>
     </div>

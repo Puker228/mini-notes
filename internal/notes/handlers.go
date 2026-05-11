@@ -34,10 +34,11 @@ func withCSRF(c *echo.Context, data map[string]any) map[string]any {
 
 func (h *Handler) ListNotes(c *echo.Context) error {
 	p := ListParams{
-		Query:    c.QueryParam("q"),
-		Sort:     c.QueryParam("sort"),
-		Order:    c.QueryParam("order"),
-		PageSize: 10,
+		Query:         c.QueryParam("q"),
+		Sort:          c.QueryParam("sort"),
+		Order:         c.QueryParam("order"),
+		EncryptedOnly: c.QueryParam("encrypted") == "1",
+		PageSize:      10,
 	}
 	if page, err := strconv.Atoi(c.QueryParam("page")); err == nil && page > 0 {
 		p.Page = page
@@ -49,10 +50,11 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "base.html", withCSRF(c, map[string]any{
-		"Result": result,
-		"Query":  p.Query,
-		"Sort":   p.Sort,
-		"Order":  p.Order,
+		"Result":        result,
+		"Query":         p.Query,
+		"Sort":          p.Sort,
+		"Order":         p.Order,
+		"EncryptedOnly": p.EncryptedOnly,
 	}))
 }
 
@@ -75,6 +77,44 @@ func (h *Handler) GetNote(c *echo.Context) error {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
 
+	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
+}
+
+func (h *Handler) DecryptNote(c *echo.Context) error {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
+	}
+
+	password := c.FormValue("password")
+	if password == "" {
+		note, err := GetNoteByID(noteID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusBadRequest, "detail.html", withCSRF(c, map[string]any{
+			"Note":  note,
+			"Error": "Password is required.",
+		}))
+	}
+
+	note, err := DecryptNoteByID(noteID, password)
+	if err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+
+		lockedNote, noteErr := GetNoteByID(noteID)
+		if noteErr != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusUnauthorized, "detail.html", withCSRF(c, map[string]any{
+			"Note":  lockedNote,
+			"Error": "Wrong password. The note could not be decrypted.",
+		}))
+	}
+
+	note.IsEncrypted = false
 	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
@@ -136,6 +176,10 @@ func (h *Handler) ShowCreateForm(c *echo.Context) error {
 	return c.Render(http.StatusOK, "create.html", withCSRF(c, nil))
 }
 
+func (h *Handler) ShowPrivateCreateForm(c *echo.Context) error {
+	return c.Render(http.StatusOK, "create_private.html", withCSRF(c, nil))
+}
+
 func (h *Handler) ShowEditForm(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -188,6 +232,26 @@ func (h *Handler) CreateNote(c *echo.Context) error {
 	}
 
 	note, err := AddNote(title, content, h.saveUploadedImage(c))
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
+	}
+
+	return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
+}
+
+func (h *Handler) CreatePrivateNote(c *echo.Context) error {
+	title := c.FormValue("title")
+	content := c.FormValue("content")
+	password := c.FormValue("password")
+
+	if title == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
+	}
+	if password == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "password required"})
+	}
+
+	note, err := AddPrivateNote(title, content, h.saveUploadedImage(c), password)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}

@@ -38,3 +38,5 @@ notes.db
 
 /dist
 /uploads
+/notes.db-shm
+/notes.db-wal
