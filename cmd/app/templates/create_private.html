@@ -3,23 +3,19 @@
 <head>
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>{{if .Note}}Edit {{.Note.Title}}{{else}}Edit Note{{end}} — Mini Notes</title>
+    <title>New Private Note — Mini Notes</title>
     <link href="/static/app.css" rel="stylesheet"/>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
 <body class="bg-zinc-950 text-zinc-100 min-h-screen">
 <div class="max-w-2xl mx-auto px-4 py-12">
 
-    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block"
-       href="{{if .Note}}/note/{{.Note.ID}}{{else}}/note{{end}}">← Back</a>
+    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← All
+        notes</a>
 
-    {{if .Note}}
-    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Edit Note</h1>
+    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">New Private Note</h1>
 
-    {{if .Note.IsEncrypted}}
-    <p class="text-zinc-300 text-lg">{{.Note.Title}}</p>
-    {{else}}
-    <form action="/note/{{.Note.ID}}/edit" class="space-y-5" enctype="multipart/form-data" method="POST">
+    <form action="/note/private" class="space-y-5" enctype="multipart/form-data" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
             <label class="block text-sm text-zinc-400 mb-1" for="title">Title</label>
@@ -30,7 +26,6 @@
                     placeholder="Note title"
                     required
                     type="text"
-                    value="{{.Note.Title}}"
             />
         </div>
         <div>
@@ -40,16 +35,23 @@
                     id="content"
                     name="content"
                     placeholder="Note text..."
-                    required
                     rows="6"
-            >{{.Note.Content}}</textarea>
+            ></textarea>
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="image">Image</label>
-            {{if .Note.ImageData}}
-            <img alt="" class="w-32 h-32 object-cover rounded-xl mb-2" src="/uploads/{{.Note.ImageData}}"/>
-            <p class="text-zinc-500 text-xs mb-2">Upload a new one to replace</p>
-            {{end}}
+            <label class="block text-sm text-zinc-400 mb-1" for="password">Password</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="password"
+                    name="password"
+                    placeholder="Encryption password"
+                    required
+                    type="password"
+            />
+            <p class="mt-2 text-sm text-zinc-500">If this password is lost, the note cannot be decrypted.</p>
+        </div>
+        <div>
+            <label class="block text-sm text-zinc-400 mb-1" for="image">Image (optional)</label>
             <input
                     accept="image/*"
                     class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
@@ -62,13 +64,9 @@
                 class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
                 type="submit"
         >
-            Save
+            Create
         </button>
     </form>
-    {{end}}
-    {{else}}
-    <p class="text-zinc-500 mt-4">Note not found.</p>
-    {{end}}
 
 </div>
 </body>

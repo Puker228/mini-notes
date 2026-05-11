@@ -25,10 +25,12 @@
             </button>
         </div>
     </div>
-    {{if .Note.ImageData}}
+    {{if and .Note.ImageData (not .Note.IsEncrypted)}}
     <img alt="" class="rounded-xl mb-6 max-h-96 object-contain" src="/uploads/{{.Note.ImageData}}"/>
     {{end}}
+    {{if not .Note.IsEncrypted}}
     <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
+    {{end}}
     <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
         <span>Created: {{formatDate .Note.CreatedAt}}</span>
         <span>Modified: {{formatDate .Note.UpdatedAt}}</span>

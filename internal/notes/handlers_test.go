@@ -21,6 +21,7 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 	router := echo.New()
 	h := NewHandler(t.TempDir())
 	router.POST("/note", h.CreateNote)
+	router.POST("/note/private", h.CreatePrivateNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 	router.POST("/note/:id/restore", h.RestoreNote)
@@ -76,6 +77,66 @@ func TestCreateNoteWithImage(t *testing.T) {
 	}
 	if note.ImageData == "" {
 		t.Fatalf("created note image data is empty, expected a filename")
+	}
+}
+
+func TestCreatePrivateNote(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	form := url.Values{
+		"title":    {"private title"},
+		"content":  {"private content"},
+		"password": {"secret"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/note/private", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusSeeOther {
+		t.Fatalf("CreatePrivateNote status = %d, want %d", rec.Code, http.StatusSeeOther)
+	}
+	if got := rec.Header().Get("Location"); got != "/note/1" {
+		t.Fatalf("CreatePrivateNote Location = %q, want /note/1", got)
+	}
+
+	var storedContent string
+	var isEncrypted bool
+	if err := db.QueryRow(`SELECT content, is_encypted FROM notes WHERE id = 1;`).Scan(&storedContent, &isEncrypted); err != nil {
+		t.Fatalf("QueryRow() error = %v", err)
+	}
+	if storedContent == "private content" {
+		t.Fatalf("stored content is plaintext, want encrypted content")
+	}
+	if !isEncrypted {
+		t.Fatalf("is_encypted = false, want true")
+	}
+
+	result, err := ListNotes(ListParams{})
+	if err != nil {
+		t.Fatalf("ListNotes() error = %v", err)
+	}
+	if len(result.Notes) != 1 || !result.Notes[0].IsEncrypted {
+		t.Fatalf("ListNotes() note = %+v, want encrypted note", result.Notes)
+	}
+}
+
+func TestCreatePrivateNoteNeedsPassword(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	form := url.Values{
+		"title":   {"private title"},
+		"content": {"private content"},
+	}
+	req := httptest.NewRequest(http.MethodPost, "/note/private", bytes.NewBufferString(form.Encode()))
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("CreatePrivateNote status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 }
 

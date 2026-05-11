@@ -34,10 +34,11 @@ func withCSRF(c *echo.Context, data map[string]any) map[string]any {
 
 func (h *Handler) ListNotes(c *echo.Context) error {
 	p := ListParams{
-		Query:    c.QueryParam("q"),
-		Sort:     c.QueryParam("sort"),
-		Order:    c.QueryParam("order"),
-		PageSize: 10,
+		Query:         c.QueryParam("q"),
+		Sort:          c.QueryParam("sort"),
+		Order:         c.QueryParam("order"),
+		EncryptedOnly: c.QueryParam("encrypted") == "1",
+		PageSize:      10,
 	}
 	if page, err := strconv.Atoi(c.QueryParam("page")); err == nil && page > 0 {
 		p.Page = page
@@ -49,10 +50,11 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 	}
 
 	return c.Render(http.StatusOK, "base.html", withCSRF(c, map[string]any{
-		"Result": result,
-		"Query":  p.Query,
-		"Sort":   p.Sort,
-		"Order":  p.Order,
+		"Result":        result,
+		"Query":         p.Query,
+		"Sort":          p.Sort,
+		"Order":         p.Order,
+		"EncryptedOnly": p.EncryptedOnly,
 	}))
 }
 
@@ -136,6 +138,10 @@ func (h *Handler) ShowCreateForm(c *echo.Context) error {
 	return c.Render(http.StatusOK, "create.html", withCSRF(c, nil))
 }
 
+func (h *Handler) ShowPrivateCreateForm(c *echo.Context) error {
+	return c.Render(http.StatusOK, "create_private.html", withCSRF(c, nil))
+}
+
 func (h *Handler) ShowEditForm(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
@@ -202,6 +208,9 @@ func (h *Handler) CreatePrivateNote(c *echo.Context) error {
 
 	if title == "" {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
+	}
+	if password == "" {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "password required"})
 	}
 
 	note, err := AddPrivateNote(title, content, h.saveUploadedImage(c), password)

@@ -104,9 +104,11 @@ func main() {
 
 	router.GET("/note", h.ListNotes)
 	router.GET("/note/new", h.ShowCreateForm)
+	router.GET("/note/private/new", h.ShowPrivateCreateForm)
 	router.GET("/note/:id/edit", h.ShowEditForm)
 	router.GET("/note/:id", h.GetNote)
 	router.POST("/note", h.CreateNote)
+	router.POST("/note/private", h.CreatePrivateNote)
 	router.POST("/note/:id/edit", h.UpdateNote)
 	router.DELETE("/note/:id", h.DeleteNote)
 	router.POST("/note/:id/restore", h.RestoreNote)

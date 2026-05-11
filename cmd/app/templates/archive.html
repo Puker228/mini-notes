@@ -19,13 +19,15 @@
         {{range .Notes}}
         <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5" id="note-{{.ID}}">
             <div class="flex gap-4 items-start">
-                {{if .ImageData}}
+                {{if and .ImageData (not .IsEncrypted)}}
                 <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 opacity-40"
                      src="/uploads/{{.ImageData}}"/>
                 {{end}}
                 <div class="min-w-0 flex-1">
                     <p class="font-semibold text-lg text-zinc-500">{{.Title}}</p>
+                    {{if not .IsEncrypted}}
                     <p class="text-zinc-600 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                    {{end}}
                     <p class="text-zinc-700 text-xs mt-2">Deleted: {{formatDate .DeletedAt}}</p>
                 </div>
                 <div class="shrink-0 flex flex-col gap-2">

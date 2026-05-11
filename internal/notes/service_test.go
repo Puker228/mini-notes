@@ -151,6 +151,33 @@ func TestListNotesFilters(t *testing.T) {
 	}
 }
 
+func TestListNotesEncryptedOnly(t *testing.T) {
+	setupTestDB(t)
+
+	regular, err := AddNote("Regular", "plain content", "")
+	if err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+	private, err := AddPrivateNote("Private", "encrypted content", "", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	result, err := ListNotes(ListParams{EncryptedOnly: true})
+	if err != nil {
+		t.Fatalf("ListNotes(encrypted only) error = %v", err)
+	}
+	if result.Total != 1 || len(result.Notes) != 1 {
+		t.Fatalf("ListNotes(encrypted only) = %+v", result)
+	}
+	if result.Notes[0].ID != private.ID || !result.Notes[0].IsEncrypted {
+		t.Fatalf("ListNotes(encrypted only) note = %+v, want private note", result.Notes[0])
+	}
+	if result.Notes[0].ID == regular.ID {
+		t.Fatalf("ListNotes(encrypted only) returned regular note")
+	}
+}
+
 func TestArchiveRestoreDelete(t *testing.T) {
 	setupTestDB(t)
 

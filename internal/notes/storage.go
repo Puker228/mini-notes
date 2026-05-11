@@ -89,7 +89,7 @@ func scanNote(s scanner) (Note, error) {
 	var note Note
 	var createdAt, updatedAt string
 	var deletedAt sql.NullString
-	if err := s.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData, &createdAt, &updatedAt, &deletedAt); err != nil {
+	if err := s.Scan(&note.ID, &note.Title, &note.Content, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsEncrypted); err != nil {
 		return Note{}, err
 	}
 	note.CreatedAt, _ = time.Parse(timeLayout, createdAt)
@@ -120,27 +120,36 @@ func listNotes(p ListParams) (ListResult, error) {
 	}
 
 	likeQ := "%" + p.Query + "%"
+	filters := []string{
+		"(deleted_at IS NULL OR deleted_at = '')",
+		"(title LIKE ? OR content LIKE ?)",
+	}
+	args := []any{likeQ, likeQ}
+	if p.EncryptedOnly {
+		filters = append(filters, "is_encypted = 1")
+	}
+	whereClause := strings.Join(filters, " AND ")
 
 	var total int
-	if err := db.QueryRow(`
+	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*) FROM notes
-		WHERE (deleted_at IS NULL OR deleted_at = '')
-		  AND (title LIKE ? OR content LIKE ?)
-	`, likeQ, likeQ).Scan(&total); err != nil {
+		WHERE %s
+	`, whereClause)
+	if err := db.QueryRow(countQuery, args...).Scan(&total); err != nil {
 		return ListResult{}, err
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
 		FROM notes
-		WHERE (deleted_at IS NULL OR deleted_at = '')
-		  AND (title LIKE ? OR content LIKE ?)
+		WHERE %s
 		ORDER BY %s %s
 		LIMIT ? OFFSET ?
-	`, sortCol, sortOrder)
+	`, whereClause, sortCol, sortOrder)
 
 	offset := (p.Page - 1) * p.PageSize
-	rows, err := db.Query(query, likeQ, likeQ, p.PageSize, offset)
+	args = append(args, p.PageSize, offset)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return ListResult{}, err
 	}
@@ -178,7 +187,7 @@ func listNotes(p ListParams) (ListResult, error) {
 
 func listArchivedNotes() ([]Note, error) {
 	rows, err := db.Query(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
 		FROM notes
 		WHERE deleted_at IS NOT NULL AND deleted_at != ''
 		ORDER BY deleted_at DESC
@@ -262,7 +271,7 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 
 func getNoteByID(ID int64) (Note, error) {
 	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
 		FROM notes
 		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 	`, ID)
