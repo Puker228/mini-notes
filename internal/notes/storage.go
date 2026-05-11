@@ -282,6 +282,44 @@ func getNoteByID(ID int64) (Note, error) {
 	return note, err
 }
 
+func decryptNoteByID(ID int64, password string) (Note, error) {
+	var note Note
+	var createdAt, updatedAt string
+	var deletedAt sql.NullString
+	var ciphertext, salt, nonce []byte
+
+	row := db.QueryRow(`
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted, encryption_salt, encryption_nonce
+		FROM notes
+		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+	`, ID)
+	if err := row.Scan(&note.ID, &note.Title, &ciphertext, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsEncrypted, &salt, &nonce); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return Note{}, ErrNoteNotFound
+		}
+		return Note{}, err
+	}
+
+	note.CreatedAt, _ = time.Parse(timeLayout, createdAt)
+	note.UpdatedAt, _ = time.Parse(timeLayout, updatedAt)
+	if deletedAt.Valid && deletedAt.String != "" {
+		t, _ := time.Parse(timeLayout, deletedAt.String)
+		note.DeletedAt = &t
+	}
+
+	if !note.IsEncrypted {
+		note.Content = string(ciphertext)
+		return note, nil
+	}
+
+	plaintext, err := NewPasswordEncryptor(password).Decrypt(salt, nonce, ciphertext)
+	if err != nil {
+		return Note{}, err
+	}
+	note.Content = string(plaintext)
+	return note, nil
+}
+
 func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
 	result, err := db.Exec(`

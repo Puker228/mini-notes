@@ -80,6 +80,44 @@ func (h *Handler) GetNote(c *echo.Context) error {
 	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
+func (h *Handler) DecryptNote(c *echo.Context) error {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
+	}
+
+	password := c.FormValue("password")
+	if password == "" {
+		note, err := GetNoteByID(noteID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusBadRequest, "detail.html", withCSRF(c, map[string]any{
+			"Note":  note,
+			"Error": "Password is required.",
+		}))
+	}
+
+	note, err := DecryptNoteByID(noteID, password)
+	if err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+
+		lockedNote, noteErr := GetNoteByID(noteID)
+		if noteErr != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusUnauthorized, "detail.html", withCSRF(c, map[string]any{
+			"Note":  lockedNote,
+			"Error": "Wrong password. The note could not be decrypted.",
+		}))
+	}
+
+	note.IsEncrypted = false
+	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
+}
+
 func (h *Handler) DeleteNote(c *echo.Context) error {
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {

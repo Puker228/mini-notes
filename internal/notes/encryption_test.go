@@ -44,4 +44,3 @@ func TestPasswordEncryptorRejectsWrongPassword(t *testing.T) {
 		t.Fatal("Decrypt() error = nil, want authentication failure")
 	}
 }
-

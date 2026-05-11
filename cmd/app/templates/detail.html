@@ -16,6 +16,7 @@
     {{if .Note}}
     <div class="flex items-start justify-between mt-4 mb-4 gap-4">
         <h1 class="text-3xl font-bold tracking-tight">{{.Note.Title}}</h1>
+        {{if not .Note.IsEncrypted}}
         <div class="shrink-0 flex items-center gap-2">
             <a class="text-sm text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors"
                href="/note/{{.Note.ID}}/edit">Edit</a>
@@ -24,17 +25,42 @@
                 Delete
             </button>
         </div>
+        {{end}}
     </div>
     {{if and .Note.ImageData (not .Note.IsEncrypted)}}
     <img alt="" class="rounded-xl mb-6 max-h-96 object-contain" src="/uploads/{{.Note.ImageData}}"/>
     {{end}}
-    {{if not .Note.IsEncrypted}}
+    {{if .Note.IsEncrypted}}
+    <form action="/note/{{.Note.ID}}/decrypt" class="space-y-4 mt-6" method="POST">
+        <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
+        <div>
+            <label class="block text-sm text-zinc-400 mb-1" for="password">Password</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="password"
+                    name="password"
+                    placeholder="Encryption password"
+                    required
+                    type="password"
+            />
+            {{if .Error}}
+            <p class="mt-2 text-sm text-red-400">{{.Error}}</p>
+            {{end}}
+        </div>
+        <button
+                class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
+                type="submit"
+        >
+            Open
+        </button>
+    </form>
+    {{else}}
     <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
-    {{end}}
     <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
         <span>Created: {{formatDate .Note.CreatedAt}}</span>
         <span>Modified: {{formatDate .Note.UpdatedAt}}</span>
     </div>
+    {{end}}
     {{else}}
     <p class="text-zinc-500 mt-4">Note not found.</p>
     {{end}}

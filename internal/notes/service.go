@@ -22,6 +22,10 @@ func AddPrivateNote(title, content, imageData, password string) (Note, error) {
 	return addPrivateNote(title, content, imageData, password)
 }
 
+func DecryptNoteByID(ID int64, password string) (Note, error) {
+	return decryptNoteByID(ID, password)
+}
+
 func GetNoteByID(ID int64) (Note, error) {
 	return getNoteByID(ID)
 }
