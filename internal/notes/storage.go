@@ -42,7 +42,7 @@ func InitDB(path string) error {
 			deleted_at TEXT,
 			encryption_salt TEXT,
 			encryption_nonce TEXT,
-			is_encypted BOOL DEFAULT 0
+			is_encrypted BOOL DEFAULT 0
 		);
 	`); err != nil {
 		_ = database.Close()
@@ -56,7 +56,7 @@ func InitDB(path string) error {
 		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
 		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
-		`ALTER TABLE notes ADD COLUMN is_encypted BOOL DEFAULT 0;`,
+		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
 	} {
 		_, _ = database.Exec(migration)
 	}
@@ -126,7 +126,7 @@ func listNotes(p ListParams) (ListResult, error) {
 	}
 	args := []any{likeQ, likeQ}
 	if p.EncryptedOnly {
-		filters = append(filters, "is_encypted = 1")
+		filters = append(filters, "is_encrypted = 1")
 	}
 	whereClause := strings.Join(filters, " AND ")
 
@@ -140,7 +140,7 @@ func listNotes(p ListParams) (ListResult, error) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
 		FROM notes
 		WHERE %s
 		ORDER BY %s %s
@@ -187,7 +187,7 @@ func listNotes(p ListParams) (ListResult, error) {
 
 func listArchivedNotes() ([]Note, error) {
 	rows, err := db.Query(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
 		FROM notes
 		WHERE deleted_at IS NOT NULL AND deleted_at != ''
 		ORDER BY deleted_at DESC
@@ -246,7 +246,7 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 	}
 
 	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encypted)
+		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
 	`, title, cipherText, imageData, now, now, salt, nonce, true)
 	if err != nil {
@@ -271,7 +271,7 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 
 func getNoteByID(ID int64) (Note, error) {
 	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted
 		FROM notes
 		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 	`, ID)
@@ -289,7 +289,7 @@ func decryptNoteByID(ID int64, password string) (Note, error) {
 	var ciphertext, salt, nonce []byte
 
 	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encypted, encryption_salt, encryption_nonce
+		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_encrypted, encryption_salt, encryption_nonce
 		FROM notes
 		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 	`, ID)
