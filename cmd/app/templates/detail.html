@@ -31,7 +31,7 @@
     <img alt="" class="rounded-xl mb-6 max-h-96 object-contain" src="/uploads/{{.Note.ImageData}}"/>
     {{end}}
     {{if .Note.IsEncrypted}}
-    <form action="/note/{{.Note.ID}}/decrypt" class="space-y-4 mt-6" method="POST">
+    <form action="/note/{{.Note.ID}}/decrypt" class="space-y-5 mt-6" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
             <label class="block text-sm text-zinc-400 mb-1" for="password">Password</label>
