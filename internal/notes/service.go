@@ -4,7 +4,11 @@ import (
 	"errors"
 )
 
-var ErrNoteNotFound = errors.New("note not found")
+var (
+	ErrNoteNotFound     = errors.New("note not found")
+	ErrInvalidPassword  = errors.New("invalid password")
+	ErrNoteNotEncrypted = errors.New("note is not encrypted")
+)
 
 func ListNotes(p ListParams) (ListResult, error) {
 	return listNotes(p)
@@ -32,6 +36,10 @@ func GetNoteByID(ID int64) (Note, error) {
 
 func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	return updateNoteByID(ID, title, content, imageData)
+}
+
+func UpdatePrivateNoteByID(ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
+	return updatePrivateNoteByID(ID, title, content, imageData, currentPassword, newPassword)
 }
 
 func TogglePinNoteByID(ID int64) (Note, error) {

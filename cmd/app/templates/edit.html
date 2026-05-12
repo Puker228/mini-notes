@@ -16,8 +16,31 @@
     {{if .Note}}
     <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">Edit Note</h1>
 
-    {{if .Note.IsEncrypted}}
-    <p class="text-zinc-300 text-lg">{{.Note.Title}}</p>
+    {{if and .Note.IsEncrypted (not .Unlocked)}}
+    <form action="/note/{{.Note.ID}}/edit/unlock" class="space-y-5" method="POST">
+        <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
+        <div>
+            <p class="text-zinc-300 text-lg mb-4">{{.Note.Title}}</p>
+            <label class="block text-sm text-zinc-400 mb-1" for="password">Password</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="password"
+                    name="password"
+                    placeholder="Encryption password"
+                    required
+                    type="password"
+            />
+            {{if .Error}}
+            <p class="mt-2 text-sm text-red-400">{{.Error}}</p>
+            {{end}}
+        </div>
+        <button
+                class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
+                type="submit"
+        >
+            Open editor
+        </button>
+    </form>
     {{else}}
     <form action="/note/{{.Note.ID}}/edit" class="space-y-5" enctype="multipart/form-data" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
@@ -44,6 +67,32 @@
                     rows="6"
             >{{.Note.Content}}</textarea>
         </div>
+        {{if .Note.IsEncrypted}}
+        <div>
+            <label class="block text-sm text-zinc-400 mb-1" for="current_password">Current password</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="current_password"
+                    name="current_password"
+                    placeholder="Required to save"
+                    required
+                    type="password"
+            />
+            {{if .Error}}
+            <p class="mt-2 text-sm text-red-400">{{.Error}}</p>
+            {{end}}
+        </div>
+        <div>
+            <label class="block text-sm text-zinc-400 mb-1" for="new_password">New password (optional)</label>
+            <input
+                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    id="new_password"
+                    name="new_password"
+                    placeholder="Leave blank to keep current password"
+                    type="password"
+            />
+        </div>
+        {{end}}
         <div>
             <label class="block text-sm text-zinc-400 mb-1" for="image">Image</label>
             {{if .Note.ImageData}}
