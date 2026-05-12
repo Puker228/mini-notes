@@ -210,6 +210,61 @@ func (h *Handler) ShowEditForm(c *echo.Context) error {
 	return c.Render(http.StatusOK, "edit.html", withCSRF(c, map[string]any{"Note": note}))
 }
 
+func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
+	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
+	}
+
+	password := c.FormValue("password")
+	if password == "" {
+		note, err := GetNoteByID(noteID)
+		if err != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusBadRequest, "edit.html", withCSRF(c, map[string]any{
+			"Note":  note,
+			"Error": "Password is required.",
+		}))
+	}
+
+	note, err := DecryptNoteByID(noteID, password)
+	if err != nil {
+		if errors.Is(err, ErrNoteNotFound) {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+
+		lockedNote, noteErr := GetNoteByID(noteID)
+		if noteErr != nil {
+			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+		}
+		return c.Render(http.StatusUnauthorized, "edit.html", withCSRF(c, map[string]any{
+			"Note":  lockedNote,
+			"Error": "Wrong password. The note could not be opened for editing.",
+		}))
+	}
+
+	return c.Render(http.StatusOK, "edit.html", withCSRF(c, map[string]any{
+		"Note":     note,
+		"Unlocked": true,
+	}))
+}
+
+func (h *Handler) resolveUpdatedImage(c *echo.Context, noteID int64) (imageData, oldImageFile string) {
+	imageData = h.saveUploadedImage(c)
+	if imageData == "" {
+		if existing, err := GetNoteByID(noteID); err == nil {
+			imageData = existing.ImageData
+		}
+		return imageData, ""
+	}
+
+	if existing, err := GetNoteByID(noteID); err == nil {
+		oldImageFile = existing.ImageData
+	}
+	return imageData, oldImageFile
+}
+
 func (h *Handler) saveUploadedImage(c *echo.Context) string {
 	file, header, err := c.Request().FormFile("image")
 	if err != nil {
@@ -281,6 +336,11 @@ func (h *Handler) UpdateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
+	existing, err := GetNoteByID(noteID)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+	}
+
 	title := c.FormValue("title")
 	content := c.FormValue("content")
 
@@ -288,16 +348,37 @@ func (h *Handler) UpdateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
-	var oldImageFile string
-	imageData := h.saveUploadedImage(c)
-	if imageData == "" {
-		if existing, err := GetNoteByID(noteID); err == nil {
-			imageData = existing.ImageData
+	imageData, oldImageFile := h.resolveUpdatedImage(c, noteID)
+
+	if existing.IsEncrypted {
+		currentPassword := c.FormValue("current_password")
+		if currentPassword == "" {
+			return c.Render(http.StatusBadRequest, "edit.html", withCSRF(c, map[string]any{
+				"Note":     Note{ID: noteID, Title: title, Content: content, ImageData: imageData, IsEncrypted: true},
+				"Unlocked": true,
+				"Error":    "Current password is required.",
+			}))
 		}
-	} else {
-		if existing, err := GetNoteByID(noteID); err == nil {
-			oldImageFile = existing.ImageData
+
+		note, err := UpdatePrivateNoteByID(noteID, title, content, imageData, currentPassword, c.FormValue("new_password"))
+		if err != nil {
+			if errors.Is(err, ErrNoteNotFound) {
+				return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+			}
+			if errors.Is(err, ErrInvalidPassword) {
+				return c.Render(http.StatusUnauthorized, "edit.html", withCSRF(c, map[string]any{
+					"Note":     Note{ID: noteID, Title: title, Content: content, ImageData: imageData, IsEncrypted: true},
+					"Unlocked": true,
+					"Error":    "Wrong password. The note was not saved.",
+				}))
+			}
+			return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to update note"})
 		}
+
+		if oldImageFile != "" {
+			_ = os.Remove(filepath.Join(h.uploadsDir, oldImageFile))
+		}
+		return c.Redirect(http.StatusSeeOther, "/note/"+strconv.FormatInt(note.ID, 10))
 	}
 
 	note, err := UpdateNoteByID(noteID, title, content, imageData)

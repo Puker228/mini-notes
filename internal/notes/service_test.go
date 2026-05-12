@@ -195,6 +195,82 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 	}
 }
 
+func TestUpdatePrivateNoteByID(t *testing.T) {
+	setupTestDB(t)
+
+	created, err := AddPrivateNote("private", "old secret", "old-image", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	updated, err := UpdatePrivateNoteByID(created.ID, "updated private", "new secret", "new-image", "secret", "")
+	if err != nil {
+		t.Fatalf("UpdatePrivateNoteByID() error = %v", err)
+	}
+	if updated.Title != "updated private" || updated.Content != "new secret" || updated.ImageData != "new-image" || !updated.IsEncrypted {
+		t.Fatalf("UpdatePrivateNoteByID() = %+v", updated)
+	}
+
+	decrypted, err := DecryptNoteByID(created.ID, "secret")
+	if err != nil {
+		t.Fatalf("DecryptNoteByID() error = %v", err)
+	}
+	if decrypted.Title != "updated private" || decrypted.Content != "new secret" || decrypted.ImageData != "new-image" {
+		t.Fatalf("DecryptNoteByID() = %+v", decrypted)
+	}
+
+	var storedContent string
+	if err := db.QueryRow(`SELECT content FROM notes WHERE id = ?;`, created.ID).Scan(&storedContent); err != nil {
+		t.Fatalf("QueryRow() error = %v", err)
+	}
+	if storedContent == "new secret" {
+		t.Fatal("stored private content is plaintext, want encrypted content")
+	}
+}
+
+func TestUpdatePrivateNoteByIDCanChangePassword(t *testing.T) {
+	setupTestDB(t)
+
+	created, err := AddPrivateNote("private", "old secret", "", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "secret", "new-secret"); err != nil {
+		t.Fatalf("UpdatePrivateNoteByID() error = %v", err)
+	}
+	if _, err := DecryptNoteByID(created.ID, "secret"); !errors.Is(err, ErrInvalidPassword) {
+		t.Fatalf("DecryptNoteByID(old password) error = %v, want %v", err, ErrInvalidPassword)
+	}
+	decrypted, err := DecryptNoteByID(created.ID, "new-secret")
+	if err != nil {
+		t.Fatalf("DecryptNoteByID(new password) error = %v", err)
+	}
+	if decrypted.Content != "new secret" {
+		t.Fatalf("DecryptNoteByID(new password).Content = %q, want new secret", decrypted.Content)
+	}
+}
+
+func TestUpdatePrivateNoteByIDRejectsWrongPassword(t *testing.T) {
+	setupTestDB(t)
+
+	created, err := AddPrivateNote("private", "old secret", "", "secret")
+	if err != nil {
+		t.Fatalf("AddPrivateNote() error = %v", err)
+	}
+
+	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "wrong", ""); !errors.Is(err, ErrInvalidPassword) {
+		t.Fatalf("UpdatePrivateNoteByID() error = %v, want %v", err, ErrInvalidPassword)
+	}
+	decrypted, err := DecryptNoteByID(created.ID, "secret")
+	if err != nil {
+		t.Fatalf("DecryptNoteByID() error = %v", err)
+	}
+	if decrypted.Content != "old secret" {
+		t.Fatalf("DecryptNoteByID().Content = %q, want old secret", decrypted.Content)
+	}
+}
+
 func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 	setupTestDB(t)
 
