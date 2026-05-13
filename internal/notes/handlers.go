@@ -297,12 +297,13 @@ func (h *Handler) saveUploadedImage(c *echo.Context) string {
 func (h *Handler) CreateNote(c *echo.Context) error {
 	title := c.FormValue("title")
 	content := c.FormValue("content")
+	tags := c.FormValue("tags")
 
 	if title == "" {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
-	note, err := AddNote(title, content, h.saveUploadedImage(c))
+	note, err := AddNote(title, content, h.saveUploadedImage(c), tags)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}
