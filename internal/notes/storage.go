@@ -202,6 +202,15 @@ func listNotes(p ListParams) (ListResult, error) {
 	if p.EncryptedOnly {
 		filters = append(filters, "is_encrypted = 1")
 	}
+	if p.Tag != "" {
+		filters = append(filters, `notes.id IN (
+			SELECT note_tag.note_id
+			FROM note_tag
+			JOIN tags ON tags.id = note_tag.tag_id
+			WHERE tags.name = ?
+		)`)
+		args = append(args, p.Tag)
+	}
 	whereClause := strings.Join(filters, " AND ")
 
 	var total int
@@ -240,6 +249,9 @@ func listNotes(p ListParams) (ListResult, error) {
 	if err := rows.Err(); err != nil {
 		return ListResult{}, err
 	}
+	if err := attachTags(notes); err != nil {
+		return ListResult{}, err
+	}
 
 	totalPages := (total + p.PageSize - 1) / p.PageSize
 	if totalPages == 0 {
@@ -257,6 +269,67 @@ func listNotes(p ListParams) (ListResult, error) {
 		PrevPage:   p.Page - 1,
 		NextPage:   p.Page + 1,
 	}, nil
+}
+
+func listTags() ([]string, error) {
+	rows, err := db.Query(`
+		SELECT tags.name
+		FROM tags
+		JOIN note_tag ON note_tag.tag_id = tags.id
+		JOIN notes ON notes.id = note_tag.note_id
+		WHERE (notes.deleted_at IS NULL OR notes.deleted_at = '')
+		GROUP BY tags.id, tags.name
+		ORDER BY LOWER(tags.name), tags.name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
+	}
+	return tags, rows.Err()
+}
+
+func listTagsByNoteID(noteID int64) ([]string, error) {
+	rows, err := db.Query(`
+		SELECT tags.name
+		FROM tags
+		JOIN note_tag ON note_tag.tag_id = tags.id
+		WHERE note_tag.note_id = ?
+		ORDER BY LOWER(tags.name), tags.name
+	`, noteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
+	}
+	return tags, rows.Err()
+}
+
+func attachTags(notes []Note) error {
+	for i := range notes {
+		tags, err := listTagsByNoteID(notes[i].ID)
+		if err != nil {
+			return err
+		}
+		notes[i].Tags = tags
+	}
+	return nil
 }
 
 func listArchivedNotes() ([]Note, error) {
@@ -298,22 +371,30 @@ func parseTags(tags string) []string {
 
 func addTags(cleanTags []string, noteID int64) error {
 	for _, tag := range cleanTags {
-		result, err := db.Exec(`
-			INSERT INTO tags (name)
+		if _, err := db.Exec(`
+			INSERT OR IGNORE INTO tags (name)
 			VALUES (?);
-			`, tag)
+		`, tag); err != nil {
+			return fmt.Errorf("addTags: %v", err)
+		}
+
+		var id int64
+		err := db.QueryRow(`
+			SELECT id
+			FROM tags
+			WHERE name = ?;
+		`, tag).Scan(&id)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		id, err := result.LastInsertId()
+		_, err = db.Exec(`
+			INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+			VALUES (?, ?);
+		`, noteID, id)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
-		result, err = db.Exec(`
-			INSERT INTO note_tag (note_id, tag_id)
-			VALUES (?, ?);
-			`, noteID, id)
 	}
 	return nil
 }
@@ -334,7 +415,9 @@ func addNote(title, content, imageData, tags string) (Note, error) {
 	}
 
 	cleanTags := parseTags(tags)
-	addTags(cleanTags, id)
+	if err := addTags(cleanTags, id); err != nil {
+		return Note{}, err
+	}
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
@@ -342,6 +425,7 @@ func addNote(title, content, imageData, tags string) (Note, error) {
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,
+		Tags:      cleanTags,
 		CreatedAt: t,
 		UpdatedAt: t,
 	}, nil
@@ -392,6 +476,10 @@ func getNoteByID(ID int64) (Note, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrNoteNotFound
 	}
+	if err != nil {
+		return Note{}, err
+	}
+	note.Tags, err = listTagsByNoteID(note.ID)
 	return note, err
 }
 

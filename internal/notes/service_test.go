@@ -3,6 +3,7 @@ package notes
 import (
 	"errors"
 	"path/filepath"
+	"slices"
 	"testing"
 )
 
@@ -192,6 +193,97 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 	}
 	if result.Notes[0].ID == regular.ID {
 		t.Fatalf("ListNotes(encrypted only) returned regular note")
+	}
+}
+
+func TestListNotesReturnsSortedTags(t *testing.T) {
+	setupTestDB(t)
+
+	created, err := AddNote("Tagged", "content", "", "beta, Alpha, alpha")
+	if err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+	if _, err := AddNote("Z shared tag", "content", "", "beta"); err != nil {
+		t.Fatalf("AddNote(shared tag) error = %v", err)
+	}
+
+	result, err := ListNotes(ListParams{Sort: "title", Order: "asc"})
+	if err != nil {
+		t.Fatalf("ListNotes() error = %v", err)
+	}
+	if len(result.Notes) != 2 {
+		t.Fatalf("ListNotes() = %+v", result)
+	}
+	got := result.Notes[0]
+	if got.ID != created.ID {
+		t.Fatalf("ListNotes() first note = %+v, want tagged note", got)
+	}
+	want := []string{"Alpha", "alpha", "beta"}
+	if len(got.Tags) != len(want) {
+		t.Fatalf("Tags = %+v, want %+v", got.Tags, want)
+	}
+	for i := range want {
+		if got.Tags[i] != want[i] {
+			t.Fatalf("Tags = %+v, want %+v", got.Tags, want)
+		}
+	}
+
+	detail, err := GetNoteByID(created.ID)
+	if err != nil {
+		t.Fatalf("GetNoteByID() error = %v", err)
+	}
+	for i := range want {
+		if detail.Tags[i] != want[i] {
+			t.Fatalf("GetNoteByID().Tags = %+v, want %+v", detail.Tags, want)
+		}
+	}
+}
+
+func TestListNotesFiltersByTag(t *testing.T) {
+	setupTestDB(t)
+
+	work, err := AddNote("Work", "quarterly plan", "", "work, planning")
+	if err != nil {
+		t.Fatalf("AddNote(work) error = %v", err)
+	}
+	personal, err := AddNote("Personal", "weekend plan", "", "personal, planning")
+	if err != nil {
+		t.Fatalf("AddNote(personal) error = %v", err)
+	}
+	archived, err := AddNote("Archived", "old work", "", "archive-only")
+	if err != nil {
+		t.Fatalf("AddNote(archived) error = %v", err)
+	}
+	if err := SoftDeleteNoteByID(archived.ID); err != nil {
+		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
+	}
+
+	result, err := ListNotes(ListParams{Tag: "planning", Sort: "title", Order: "asc"})
+	if err != nil {
+		t.Fatalf("ListNotes(tag) error = %v", err)
+	}
+	if result.Total != 2 || len(result.Notes) != 2 {
+		t.Fatalf("ListNotes(tag) = %+v", result)
+	}
+	if result.Notes[0].ID != personal.ID || result.Notes[1].ID != work.ID {
+		t.Fatalf("ListNotes(tag) notes = %+v, want Personal and Work", result.Notes)
+	}
+
+	searchResult, err := ListNotes(ListParams{Query: "quarterly", Tag: "planning"})
+	if err != nil {
+		t.Fatalf("ListNotes(search tag) error = %v", err)
+	}
+	if searchResult.Total != 1 || len(searchResult.Notes) != 1 || searchResult.Notes[0].ID != work.ID {
+		t.Fatalf("ListNotes(search tag) = %+v, want work note", searchResult)
+	}
+
+	tags, err := ListTags()
+	if err != nil {
+		t.Fatalf("ListTags() error = %v", err)
+	}
+	wantTags := []string{"personal", "planning", "work"}
+	if !slices.Equal(tags, wantTags) {
+		t.Fatalf("ListTags() = %+v, want %+v", tags, wantTags)
 	}
 }
 

@@ -35,6 +35,7 @@ func withCSRF(c *echo.Context, data map[string]any) map[string]any {
 func (h *Handler) ListNotes(c *echo.Context) error {
 	p := ListParams{
 		Query:         c.QueryParam("q"),
+		Tag:           c.QueryParam("tag"),
 		Sort:          c.QueryParam("sort"),
 		Order:         c.QueryParam("order"),
 		EncryptedOnly: c.QueryParam("encrypted") == "1",
@@ -48,10 +49,16 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list notes"})
 	}
+	tags, err := ListTags()
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list tags"})
+	}
 
 	return c.Render(http.StatusOK, "base.html", withCSRF(c, map[string]any{
 		"Result":        result,
 		"Query":         p.Query,
+		"Tag":           p.Tag,
+		"Tags":          tags,
 		"Sort":          p.Sort,
 		"Order":         p.Order,
 		"EncryptedOnly": p.EncryptedOnly,
