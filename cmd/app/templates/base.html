@@ -32,6 +32,13 @@
                 value="{{.Query}}"
         />
         <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
+                name="tag">
+            <option value="" {{if eq .Tag ""}}selected{{end}}>All tags</option>
+            {{range .Tags}}
+            <option value="{{.}}" {{if eq $.Tag .}}selected{{end}}>{{.}}</option>
+            {{end}}
+        </select>
+        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
                 name="sort">
             <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Created</option>
             <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Modified</option>
@@ -68,6 +75,13 @@
                         </div>
                         {{if not .IsEncrypted}}
                         <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                        {{if .Tags}}
+                        <div class="flex flex-wrap gap-2 mt-2">
+                            {{range .Tags}}
+                            <span class="text-xs text-zinc-400 border border-zinc-800 rounded px-2 py-1">{{.}}</span>
+                            {{end}}
+                        </div>
+                        {{end}}
                         <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
                         {{end}}
                     </div>
@@ -89,11 +103,11 @@
         <div class="flex gap-2">
             {{if .Result.HasPrev}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.PrevPage}}">← Back</a>
+               href="?q={{urlEncode .Query}}&tag={{urlEncode .Tag}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.PrevPage}}">← Back</a>
             {{end}}
             {{if .Result.HasNext}}
             <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
-               href="?q={{urlEncode .Query}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.NextPage}}">Next →</a>
+               href="?q={{urlEncode .Query}}&tag={{urlEncode .Tag}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.NextPage}}">Next →</a>
             {{end}}
         </div>
     </div>
@@ -101,7 +115,7 @@
 
     {{else}}
     <p class="text-zinc-500">
-        {{if .Query}}Nothing found for "{{.Query}}".{{else}}No notes yet.{{end}}
+        {{if or .Query .Tag}}Nothing found.{{else}}No notes yet.{{end}}
     </p>
     {{end}}
 

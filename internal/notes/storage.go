@@ -32,50 +32,69 @@ func InitDB(path string) error {
 	}
 
 	if _, err := database.Exec(`
-		CREATE TABLE IF NOT EXISTS notes (
-			id         INTEGER PRIMARY KEY AUTOINCREMENT,
-			title      TEXT NOT NULL,
-			content    TEXT NOT NULL,
-			image_data TEXT NOT NULL DEFAULT '',
-			created_at TEXT NOT NULL DEFAULT '',
-			updated_at TEXT NOT NULL DEFAULT '',
-			deleted_at TEXT,
-			encryption_salt TEXT,
+		CREATE TABLE IF NOT EXISTS notes
+		(
+			id               INTEGER PRIMARY KEY AUTOINCREMENT,
+			title            TEXT NOT NULL,
+			content          TEXT NOT NULL,
+			image_data       TEXT NOT NULL DEFAULT '',
+			created_at       TEXT NOT NULL DEFAULT '',
+			updated_at       TEXT NOT NULL DEFAULT '',
+			deleted_at       TEXT,
+			encryption_salt  TEXT,
 			encryption_nonce TEXT,
-			is_pinned BOOL DEFAULT 0,
-			is_encrypted BOOL DEFAULT 0
+			is_pinned        BOOL          DEFAULT 0,
+			is_encrypted     BOOL          DEFAULT 0
+		);
+
+		CREATE TABLE IF NOT EXISTS tags
+		(
+			id   INTEGER PRIMARY KEY AUTOINCREMENT,
+			name VARCHAR(255) UNIQUE
+		);
+		
+		CREATE TABLE IF NOT EXISTS note_tag
+		(
+			note_id INTEGER NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
+			tag_id  INTEGER NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
+		
+			PRIMARY KEY (note_id, tag_id)
 		);
 		
 		CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts
-		USING fts5(
-    	title,
-    	content,
-    	content='notes',
-    	content_rowid='id'
+			USING fts5
+		(
+			title,
+			content,
+			content='notes',
+			content_rowid='id'
 		);
 		
 		CREATE TRIGGER IF NOT EXISTS notes_ai
-		AFTER INSERT ON notes
+			AFTER INSERT
+			ON notes
 		BEGIN
-    	INSERT INTO notes_fts(rowid, title, content)
-    	VALUES (new.id, new.title, new.content);
+			INSERT INTO notes_fts(rowid, title, content)
+			VALUES (new.id, new.title, new.content);
 		END;
 		
 		CREATE TRIGGER IF NOT EXISTS notes_ad
-		AFTER DELETE ON notes
+			AFTER DELETE
+			ON notes
 		BEGIN
-    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
-    	VALUES ('delete', old.id, old.title, old.content);
+			INSERT INTO notes_fts(notes_fts, rowid, title, content)
+			VALUES ('delete', old.id, old.title, old.content);
 		END;
-	
+		
 		CREATE TRIGGER IF NOT EXISTS notes_au
-		AFTER UPDATE ON notes
+			AFTER UPDATE
+			ON notes
 		BEGIN
-    	INSERT INTO notes_fts(notes_fts, rowid, title, content)
-    	VALUES ('delete', old.id, old.title, old.content);
-
-    	INSERT INTO notes_fts(rowid, title, content)
-    	VALUES (new.id, new.title, new.content);
+			INSERT INTO notes_fts(notes_fts, rowid, title, content)
+			VALUES ('delete', old.id, old.title, old.content);
+		
+			INSERT INTO notes_fts(rowid, title, content)
+			VALUES (new.id, new.title, new.content);
 		END;
 	`); err != nil {
 		_ = database.Close()
@@ -183,6 +202,15 @@ func listNotes(p ListParams) (ListResult, error) {
 	if p.EncryptedOnly {
 		filters = append(filters, "is_encrypted = 1")
 	}
+	if p.Tag != "" {
+		filters = append(filters, `notes.id IN (
+			SELECT note_tag.note_id
+			FROM note_tag
+			JOIN tags ON tags.id = note_tag.tag_id
+			WHERE tags.name = ?
+		)`)
+		args = append(args, p.Tag)
+	}
 	whereClause := strings.Join(filters, " AND ")
 
 	var total int
@@ -221,6 +249,9 @@ func listNotes(p ListParams) (ListResult, error) {
 	if err := rows.Err(); err != nil {
 		return ListResult{}, err
 	}
+	if err := attachTags(notes); err != nil {
+		return ListResult{}, err
+	}
 
 	totalPages := (total + p.PageSize - 1) / p.PageSize
 	if totalPages == 0 {
@@ -238,6 +269,67 @@ func listNotes(p ListParams) (ListResult, error) {
 		PrevPage:   p.Page - 1,
 		NextPage:   p.Page + 1,
 	}, nil
+}
+
+func listTags() ([]string, error) {
+	rows, err := db.Query(`
+		SELECT tags.name
+		FROM tags
+		JOIN note_tag ON note_tag.tag_id = tags.id
+		JOIN notes ON notes.id = note_tag.note_id
+		WHERE (notes.deleted_at IS NULL OR notes.deleted_at = '')
+		GROUP BY tags.id, tags.name
+		ORDER BY LOWER(tags.name), tags.name
+	`)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
+	}
+	return tags, rows.Err()
+}
+
+func listTagsByNoteID(noteID int64) ([]string, error) {
+	rows, err := db.Query(`
+		SELECT tags.name
+		FROM tags
+		JOIN note_tag ON note_tag.tag_id = tags.id
+		WHERE note_tag.note_id = ?
+		ORDER BY LOWER(tags.name), tags.name
+	`, noteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var tags []string
+	for rows.Next() {
+		var tag string
+		if err := rows.Scan(&tag); err != nil {
+			return nil, err
+		}
+		tags = append(tags, tag)
+	}
+	return tags, rows.Err()
+}
+
+func attachTags(notes []Note) error {
+	for i := range notes {
+		tags, err := listTagsByNoteID(notes[i].ID)
+		if err != nil {
+			return err
+		}
+		notes[i].Tags = tags
+	}
+	return nil
 }
 
 func listArchivedNotes() ([]Note, error) {
@@ -263,7 +355,51 @@ func listArchivedNotes() ([]Note, error) {
 	return notes, rows.Err()
 }
 
-func addNote(title, content, imageData string) (Note, error) {
+func parseTags(tags string) []string {
+	tagsParts := strings.Split(tags, ",")
+	cleanTags := make([]string, 0, len(tagsParts))
+
+	for _, tag := range tagsParts {
+		tag = strings.TrimSpace(tag)
+		if tag != "" {
+			cleanTags = append(cleanTags, tag)
+		}
+	}
+
+	return cleanTags
+}
+
+func addTags(cleanTags []string, noteID int64) error {
+	for _, tag := range cleanTags {
+		if _, err := db.Exec(`
+			INSERT OR IGNORE INTO tags (name)
+			VALUES (?);
+		`, tag); err != nil {
+			return fmt.Errorf("addTags: %v", err)
+		}
+
+		var id int64
+		err := db.QueryRow(`
+			SELECT id
+			FROM tags
+			WHERE name = ?;
+		`, tag).Scan(&id)
+		if err != nil {
+			return fmt.Errorf("addTags: %v", err)
+		}
+
+		_, err = db.Exec(`
+			INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+			VALUES (?, ?);
+		`, noteID, id)
+		if err != nil {
+			return fmt.Errorf("addTags: %v", err)
+		}
+	}
+	return nil
+}
+
+func addNote(title, content, imageData, tags string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
 	result, err := db.Exec(`
 		INSERT INTO notes (title, content, image_data, created_at, updated_at)
@@ -278,12 +414,18 @@ func addNote(title, content, imageData string) (Note, error) {
 		return Note{}, err
 	}
 
+	cleanTags := parseTags(tags)
+	if err := addTags(cleanTags, id); err != nil {
+		return Note{}, err
+	}
+
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
 		ID:        id,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,
+		Tags:      cleanTags,
 		CreatedAt: t,
 		UpdatedAt: t,
 	}, nil
@@ -334,6 +476,10 @@ func getNoteByID(ID int64) (Note, error) {
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrNoteNotFound
 	}
+	if err != nil {
+		return Note{}, err
+	}
+	note.Tags, err = listTagsByNoteID(note.ID)
 	return note, err
 }
 

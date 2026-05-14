@@ -7,6 +7,7 @@ type Note struct {
 	Title       string
 	Content     string
 	ImageData   string
+	Tags        []string
 	IsPinned    bool
 	IsEncrypted bool
 	CreatedAt   time.Time
@@ -16,6 +17,7 @@ type Note struct {
 
 type ListParams struct {
 	Query         string
+	Tag           string
 	Sort          string // "created_at", "updated_at", "title"
 	Order         string // "asc", "desc"
 	EncryptedOnly bool

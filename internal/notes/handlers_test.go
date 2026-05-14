@@ -361,7 +361,7 @@ func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 func TestUpdateNoteKeepsImage(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("old title", "old content", "old-image")
+	created, err := AddNote("old title", "old content", "old-image", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -392,7 +392,7 @@ func TestUpdateNoteKeepsImage(t *testing.T) {
 func TestDeleteRestorePermanent(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "")
+	created, err := AddNote("title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -432,7 +432,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 func TestTogglePinNoteHandler(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "")
+	created, err := AddNote("title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}

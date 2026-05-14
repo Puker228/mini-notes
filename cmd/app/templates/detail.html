@@ -63,6 +63,13 @@
     </form>
     {{else}}
     <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
+    {{if .Note.Tags}}
+    <div class="flex flex-wrap gap-2 mt-6">
+        {{range .Note.Tags}}
+        <span class="text-xs text-zinc-400 border border-zinc-800 rounded px-2 py-1">{{.}}</span>
+        {{end}}
+    </div>
+    {{end}}
     <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
         <span>Created: {{formatDate .Note.CreatedAt}}</span>
         <span>Modified: {{formatDate .Note.UpdatedAt}}</span>

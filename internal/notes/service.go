@@ -18,8 +18,12 @@ func ListArchivedNotes() ([]Note, error) {
 	return listArchivedNotes()
 }
 
-func AddNote(title, content, imageData string) (Note, error) {
-	return addNote(title, content, imageData)
+func ListTags() ([]string, error) {
+	return listTags()
+}
+
+func AddNote(title, content, imageData, tags string) (Note, error) {
+	return addNote(title, content, imageData, tags)
 }
 
 func AddPrivateNote(title, content, imageData, password string) (Note, error) {
