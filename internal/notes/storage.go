@@ -7,6 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
@@ -297,6 +300,20 @@ func listTags() ([]string, error) {
 	return tags, rows.Err()
 }
 
+func renderMD(content string) (string, error) {
+	md := []byte(content)
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse(md)
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	res := markdown.Render(doc, renderer)
+	return string(res), nil
+}
+
 func listTagsByNoteID(noteID int64) ([]string, error) {
 	rows, err := db.Query(`
 		SELECT tags.name
@@ -480,6 +497,7 @@ func getNoteByID(ID int64) (Note, error) {
 		return Note{}, err
 	}
 	note.Tags, err = listTagsByNoteID(note.ID)
+	note.Content, err = renderMD(note.Content)
 	return note, err
 }
 

@@ -3,6 +3,7 @@ module github.com/Puker228/mini-notes
 go 1.26.1
 
 require (
+	github.com/gomarkdown/markdown v0.0.0-20260417124207-7d523f7318df
 	github.com/labstack/echo/v5 v5.1.1
 	github.com/ncruces/go-sqlite3 v0.34.1
 	golang.org/x/crypto v0.51.0
