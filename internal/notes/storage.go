@@ -10,6 +10,7 @@ import (
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
+	"github.com/microcosm-cc/bluemonday"
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
@@ -310,7 +311,8 @@ func renderMD(content string) (string, error) {
 	opts := html.RendererOptions{Flags: htmlFlags}
 	renderer := html.NewRenderer(opts)
 
-	res := markdown.Render(doc, renderer)
+	unsafeRes := markdown.Render(doc, renderer)
+	res := bluemonday.UGCPolicy().SanitizeBytes(unsafeRes)
 	return string(res), nil
 }
 
