@@ -48,11 +48,13 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 				return "—"
 			},
 			"urlEncode": url.QueryEscape,
+			"safeHtml":  func(s string) template.HTML { return template.HTML(s) },
 		}).ParseGlob("../../cmd/app/templates/*.html")),
 	}
 	h := NewHandler(t.TempDir())
 	router.POST("/note", h.CreateNote)
 	router.POST("/note/private", h.CreatePrivateNote)
+	router.GET("/note/:id/edit", h.ShowEditForm)
 	router.POST("/note/:id/decrypt", h.DecryptNote)
 	router.POST("/note/:id/edit/unlock", h.UnlockPrivateEditForm)
 	router.POST("/note/:id/edit", h.UpdateNote)
@@ -269,6 +271,30 @@ func TestUnlockPrivateEditFormWrongPassword(t *testing.T) {
 	}
 	if bytes.Contains(rec.Body.Bytes(), []byte("private content")) {
 		t.Fatalf("UnlockPrivateEditForm body contains decrypted content after wrong password: %s", rec.Body.String())
+	}
+}
+
+func TestShowEditFormUsesOriginalContent(t *testing.T) {
+	router := setupHandlerRouter(t)
+
+	created, err := AddNote("markdown note", "# Heading\n\n**bold**", "", "")
+	if err != nil {
+		t.Fatalf("AddNote() error = %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/note/"+strconv.FormatInt(created.ID, 10)+"/edit", nil)
+	rec := httptest.NewRecorder()
+
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("ShowEditForm status = %d, want %d", rec.Code, http.StatusOK)
+	}
+	if !bytes.Contains(rec.Body.Bytes(), []byte("# Heading")) || !bytes.Contains(rec.Body.Bytes(), []byte("**bold**")) {
+		t.Fatalf("ShowEditForm body does not contain original Markdown content: %s", rec.Body.String())
+	}
+	if bytes.Contains(rec.Body.Bytes(), []byte("&lt;strong&gt;bold&lt;/strong&gt;")) {
+		t.Fatalf("ShowEditForm body contains rendered HTML instead of original content: %s", rec.Body.String())
 	}
 }
 

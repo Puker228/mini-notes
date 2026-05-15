@@ -7,6 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gomarkdown/markdown"
+	"github.com/gomarkdown/markdown/html"
+	"github.com/gomarkdown/markdown/parser"
+	"github.com/microcosm-cc/bluemonday"
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
@@ -295,6 +299,21 @@ func listTags() ([]string, error) {
 		tags = append(tags, tag)
 	}
 	return tags, rows.Err()
+}
+
+func renderMD(content string) (string, error) {
+	md := []byte(content)
+	extensions := parser.CommonExtensions | parser.AutoHeadingIDs | parser.NoEmptyLineBeforeBlock
+	p := parser.NewWithExtensions(extensions)
+	doc := p.Parse(md)
+
+	htmlFlags := html.CommonFlags | html.HrefTargetBlank
+	opts := html.RendererOptions{Flags: htmlFlags}
+	renderer := html.NewRenderer(opts)
+
+	unsafeRes := markdown.Render(doc, renderer)
+	res := bluemonday.UGCPolicy().SanitizeBytes(unsafeRes)
+	return string(res), nil
 }
 
 func listTagsByNoteID(noteID int64) ([]string, error) {

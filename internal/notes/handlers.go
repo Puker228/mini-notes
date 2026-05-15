@@ -32,6 +32,32 @@ func withCSRF(c *echo.Context, data map[string]any) map[string]any {
 	return data
 }
 
+func renderNoteForDisplay(note Note) (Note, error) {
+	if note.IsEncrypted {
+		return note, nil
+	}
+	content, err := renderMD(note.Content)
+	if err != nil {
+		return Note{}, err
+	}
+	note.Content = content
+	return note, nil
+}
+
+func renderNotesForDisplay(result *ListResult) error {
+	for i := range result.Notes {
+		if result.Notes[i].IsEncrypted {
+			continue
+		}
+		content, err := renderMD(result.Notes[i].Content)
+		if err != nil {
+			return err
+		}
+		result.Notes[i].Content = content
+	}
+	return nil
+}
+
 func (h *Handler) ListNotes(c *echo.Context) error {
 	p := ListParams{
 		Query:         c.QueryParam("q"),
@@ -48,6 +74,9 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 	result, err := ListNotes(p)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list notes"})
+	}
+	if err := renderNotesForDisplay(&result); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to render notes"})
 	}
 	tags, err := ListTags()
 	if err != nil {
@@ -82,6 +111,10 @@ func (h *Handler) GetNote(c *echo.Context) error {
 	note, err := GetNoteByID(noteID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
+	}
+	note, err = renderNoteForDisplay(note)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to render note"})
 	}
 
 	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
@@ -122,6 +155,10 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 	}
 
 	note.IsEncrypted = false
+	note, err = renderNoteForDisplay(note)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to render note"})
+	}
 	return c.Render(http.StatusOK, "detail.html", withCSRF(c, map[string]any{"Note": note}))
 }
 

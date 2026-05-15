@@ -62,7 +62,7 @@
         </button>
     </form>
     {{else}}
-    <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{.Note.Content}}</p>
+    <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{safeHtml .Note.Content}}</p>
     {{if .Note.Tags}}
     <div class="flex flex-wrap gap-2 mt-6">
         {{range .Note.Tags}}
