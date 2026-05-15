@@ -136,6 +136,7 @@ func main() {
 			return "—"
 		},
 		"urlEncode": url.QueryEscape,
+		"safeHtml":  func(s string) template.HTML { return template.HTML(s) },
 	}
 
 	t := template.Must(template.New("").Funcs(funcMap).ParseFS(templateFS, "templates/*.html"))
