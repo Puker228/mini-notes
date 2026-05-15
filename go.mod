@@ -1,4 +1,4 @@
-module mini-notes
+module github.com/Puker228/mini-notes
 
 go 1.26.1
 

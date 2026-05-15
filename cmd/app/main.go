@@ -16,8 +16,7 @@ import (
 	"syscall"
 	"time"
 
-	"mini-notes/internal/notes"
-
+	"github.com/Puker228/mini-notes/internal/notes"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
