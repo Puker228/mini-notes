@@ -248,7 +248,6 @@ func listNotes(p ListParams) (ListResult, error) {
 		if err != nil {
 			return ListResult{}, err
 		}
-		note.Content, _ = renderMD(note.Content)
 		notes = append(notes, note)
 	}
 	if err := rows.Err(); err != nil {
@@ -500,7 +499,6 @@ func getNoteByID(ID int64) (Note, error) {
 		return Note{}, err
 	}
 	note.Tags, err = listTagsByNoteID(note.ID)
-	note.Content, err = renderMD(note.Content)
 	return note, err
 }
 
