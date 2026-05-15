@@ -98,7 +98,6 @@ func main() {
 			if v.Error == nil {
 				logger.LogAttrs(
 					context.Background(), slog.LevelInfo, "REQUEST",
-					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
 					slog.Duration("latency", v.Latency),
@@ -106,7 +105,6 @@ func main() {
 			} else {
 				logger.LogAttrs(
 					context.Background(), slog.LevelError, "REQUEST_ERROR",
-					slog.String("method", v.Method),
 					slog.String("uri", v.URI),
 					slog.Int("status", v.Status),
 					slog.String("err", v.Error.Error()),

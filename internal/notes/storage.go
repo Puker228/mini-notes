@@ -248,6 +248,7 @@ func listNotes(p ListParams) (ListResult, error) {
 		if err != nil {
 			return ListResult{}, err
 		}
+		note.Content, _ = renderMD(note.Content)
 		notes = append(notes, note)
 	}
 	if err := rows.Err(); err != nil {
