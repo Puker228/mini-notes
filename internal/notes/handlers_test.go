@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -63,6 +64,42 @@ func setupHandlerRouter(t *testing.T) *echo.Echo {
 	router.POST("/note/:id/restore", h.RestoreNote)
 	router.DELETE("/note/:id/permanent", h.PermanentDeleteNote)
 	return router
+}
+
+func TestNotePreviewLimitsContent(t *testing.T) {
+	content := strings.Repeat("слово ", 80)
+
+	preview := notePreview(content)
+
+	if len([]rune(preview)) > notePreviewRuneLimit+3 {
+		t.Fatalf("notePreview length = %d, want at most %d", len([]rune(preview)), notePreviewRuneLimit+3)
+	}
+	if !strings.HasSuffix(preview, "...") {
+		t.Fatalf("notePreview() = %q, want ellipsis suffix", preview)
+	}
+	if strings.Contains(preview, "\n") {
+		t.Fatalf("notePreview() = %q, want collapsed whitespace", preview)
+	}
+}
+
+func TestRenderNotesForDisplayUsesPreview(t *testing.T) {
+	result := ListResult{
+		Notes: []Note{
+			{Content: strings.Repeat("long content ", 40)},
+			{Content: "encrypted content", IsEncrypted: true},
+		},
+	}
+
+	if err := renderNotesForDisplay(&result); err != nil {
+		t.Fatalf("renderNotesForDisplay() error = %v", err)
+	}
+
+	if len([]rune(result.Notes[0].Content)) > notePreviewRuneLimit+3 {
+		t.Fatalf("renderNotesForDisplay() content length = %d, want preview", len([]rune(result.Notes[0].Content)))
+	}
+	if result.Notes[1].Content != "encrypted content" {
+		t.Fatalf("renderNotesForDisplay() encrypted content = %q, want unchanged", result.Notes[1].Content)
+	}
 }
 
 func TestCreateNoteWithImage(t *testing.T) {
