@@ -10,10 +10,13 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
 )
+
+const notePreviewRuneLimit = 180
 
 type Handler struct {
 	uploadsDir string
@@ -49,13 +52,26 @@ func renderNotesForDisplay(result *ListResult) error {
 		if result.Notes[i].IsEncrypted {
 			continue
 		}
-		content, err := renderMD(result.Notes[i].Content)
-		if err != nil {
-			return err
-		}
-		result.Notes[i].Content = content
+		result.Notes[i].Content = notePreview(result.Notes[i].Content)
 	}
 	return nil
+}
+
+func notePreview(content string) string {
+	preview := strings.Join(strings.Fields(content), " ")
+	if len([]rune(preview)) <= notePreviewRuneLimit {
+		return preview
+	}
+
+	runes := []rune(preview)
+	cut := notePreviewRuneLimit
+	for cut > 0 && runes[cut] != ' ' {
+		cut--
+	}
+	if cut == 0 {
+		cut = notePreviewRuneLimit
+	}
+	return strings.TrimSpace(string(runes[:cut])) + "..."
 }
 
 func (h *Handler) ListNotes(c *echo.Context) error {
