@@ -27,4 +27,14 @@ SELECT id,
 FROM notes
 WHERE deleted_at IS NOT NULL
   AND deleted_at != ''
-ORDER BY deleted_at DESC
+ORDER BY deleted_at DESC;
+
+-- name: GetNoteByID :one
+SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
+FROM notes
+WHERE id = sqlc.arg(id) AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: CreateNote :one
+INSERT INTO notes (title, content, image_data, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?)
+RETURNING ID;

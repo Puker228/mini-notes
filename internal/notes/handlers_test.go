@@ -315,7 +315,7 @@ func TestUnlockPrivateEditFormWrongPassword(t *testing.T) {
 func TestShowEditFormUsesOriginalContent(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("markdown note", "# Heading\n\n**bold**", "", "")
+	created, err := AddNote(context.Background(), "markdown note", "# Heading\n\n**bold**", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -425,7 +425,7 @@ func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 func TestUpdateNoteKeepsImage(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("old title", "old content", "old-image", "")
+	created, err := AddNote(context.Background(), "old title", "old content", "old-image", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -444,7 +444,7 @@ func TestUpdateNoteKeepsImage(t *testing.T) {
 		t.Fatalf("UpdateNote status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 
-	got, err := GetNoteByID(created.ID)
+	got, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}
@@ -456,7 +456,7 @@ func TestUpdateNoteKeepsImage(t *testing.T) {
 func TestDeleteRestorePermanent(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -468,7 +468,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("DeleteNote status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
-	if _, err := GetNoteByID(created.ID); !errors.Is(err, ErrNoteNotFound) {
+	if _, err := GetNoteByID(context.Background(), created.ID); !errors.Is(err, ErrNoteNotFound) {
 		t.Fatalf("GetNoteByID() after delete error = %v, want %v", err, ErrNoteNotFound)
 	}
 
@@ -478,7 +478,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("RestoreNote status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
-	if _, err := GetNoteByID(created.ID); err != nil {
+	if _, err := GetNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("GetNoteByID() after restore error = %v", err)
 	}
 
@@ -488,7 +488,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("PermanentDeleteNote status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
-	if _, err := GetNoteByID(created.ID); !errors.Is(err, ErrNoteNotFound) {
+	if _, err := GetNoteByID(context.Background(), created.ID); !errors.Is(err, ErrNoteNotFound) {
 		t.Fatalf("GetNoteByID() after permanent delete error = %v, want %v", err, ErrNoteNotFound)
 	}
 }
@@ -496,7 +496,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 func TestTogglePinNoteHandler(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -508,7 +508,7 @@ func TestTogglePinNoteHandler(t *testing.T) {
 	if rec.Code != http.StatusNoContent {
 		t.Fatalf("TogglePinNote status = %d, want %d", rec.Code, http.StatusNoContent)
 	}
-	got, err := GetNoteByID(created.ID)
+	got, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}

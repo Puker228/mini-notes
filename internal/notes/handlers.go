@@ -122,12 +122,14 @@ func (h *Handler) ListArchive(c *echo.Context) error {
 }
 
 func (h *Handler) GetNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	note, err := GetNoteByID(noteID)
+	note, err := GetNoteByID(ctx, noteID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
@@ -140,6 +142,8 @@ func (h *Handler) GetNote(c *echo.Context) error {
 }
 
 func (h *Handler) DecryptNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
@@ -147,7 +151,7 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 
 	password := c.FormValue("password")
 	if password == "" {
-		note, err := GetNoteByID(noteID)
+		note, err := GetNoteByID(ctx, noteID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
@@ -163,7 +167,7 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
 
-		lockedNote, noteErr := GetNoteByID(noteID)
+		lockedNote, noteErr := GetNoteByID(ctx, noteID)
 		if noteErr != nil {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
@@ -198,12 +202,14 @@ func (h *Handler) DeleteNote(c *echo.Context) error {
 }
 
 func (h *Handler) TogglePinNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	if _, err := TogglePinNoteByID(noteID); err != nil {
+	if _, err := TogglePinNoteByID(ctx, noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
@@ -230,12 +236,14 @@ func (h *Handler) RestoreNote(c *echo.Context) error {
 }
 
 func (h *Handler) PermanentDeleteNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	existing, _ := GetNoteByID(noteID)
+	existing, _ := GetNoteByID(ctx, noteID)
 
 	if err := PermanentDeleteNoteByID(noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
@@ -260,12 +268,14 @@ func (h *Handler) ShowPrivateCreateForm(c *echo.Context) error {
 }
 
 func (h *Handler) ShowEditForm(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	note, err := GetNoteByID(noteID)
+	note, err := GetNoteByID(ctx, noteID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}
@@ -274,6 +284,8 @@ func (h *Handler) ShowEditForm(c *echo.Context) error {
 }
 
 func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
@@ -281,7 +293,7 @@ func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
 
 	password := c.FormValue("password")
 	if password == "" {
-		note, err := GetNoteByID(noteID)
+		note, err := GetNoteByID(ctx, noteID)
 		if err != nil {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
@@ -297,7 +309,7 @@ func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
 
-		lockedNote, noteErr := GetNoteByID(noteID)
+		lockedNote, noteErr := GetNoteByID(ctx, noteID)
 		if noteErr != nil {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
@@ -314,15 +326,17 @@ func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
 }
 
 func (h *Handler) resolveUpdatedImage(c *echo.Context, noteID int64) (imageData, oldImageFile string) {
+	ctx := c.Request().Context()
+
 	imageData = h.saveUploadedImage(c)
 	if imageData == "" {
-		if existing, err := GetNoteByID(noteID); err == nil {
+		if existing, err := GetNoteByID(ctx, noteID); err == nil {
 			imageData = existing.ImageData
 		}
 		return imageData, ""
 	}
 
-	if existing, err := GetNoteByID(noteID); err == nil {
+	if existing, err := GetNoteByID(ctx, noteID); err == nil {
 		oldImageFile = existing.ImageData
 	}
 	return imageData, oldImageFile
@@ -358,6 +372,8 @@ func (h *Handler) saveUploadedImage(c *echo.Context) string {
 }
 
 func (h *Handler) CreateNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	title := c.FormValue("title")
 	content := c.FormValue("content")
 	tags := c.FormValue("tags")
@@ -366,7 +382,7 @@ func (h *Handler) CreateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "title required"})
 	}
 
-	note, err := AddNote(title, content, h.saveUploadedImage(c), tags)
+	note, err := AddNote(ctx, title, content, h.saveUploadedImage(c), tags)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}
@@ -395,12 +411,14 @@ func (h *Handler) CreatePrivateNote(c *echo.Context) error {
 }
 
 func (h *Handler) UpdateNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	existing, err := GetNoteByID(noteID)
+	existing, err := GetNoteByID(ctx, noteID)
 	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 	}

@@ -23,8 +23,8 @@ func ListTags(ctx context.Context) ([]string, error) {
 	return listTags(ctx)
 }
 
-func AddNote(title, content, imageData, tags string) (Note, error) {
-	return addNote(title, content, imageData, tags)
+func AddNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {
+	return addNote(ctx, title, content, imageData, tags)
 }
 
 func AddPrivateNote(title, content, imageData, password string) (Note, error) {
@@ -35,8 +35,8 @@ func DecryptNoteByID(ID int64, password string) (Note, error) {
 	return decryptNoteByID(ID, password)
 }
 
-func GetNoteByID(ID int64) (Note, error) {
-	return getNoteByID(ID)
+func GetNoteByID(ctx context.Context, ID int64) (Note, error) {
+	return getNoteByID(ctx, ID)
 }
 
 func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
@@ -47,8 +47,8 @@ func UpdatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 	return updatePrivateNoteByID(ID, title, content, imageData, currentPassword, newPassword)
 }
 
-func TogglePinNoteByID(ID int64) (Note, error) {
-	return togglePinNoteByID(ID)
+func TogglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
+	return togglePinNoteByID(ctx, ID)
 }
 
 func SoftDeleteNoteByID(ID int64) error {

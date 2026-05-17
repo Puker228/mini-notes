@@ -332,29 +332,28 @@ func addTags(cleanTags []string, noteID int64) error {
 	return nil
 }
 
-func addNote(title, content, imageData, tags string) (Note, error) {
+func addNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?);
-	`, title, content, imageData, now, now)
-	if err != nil {
-		return Note{}, err
-	}
 
-	id, err := result.LastInsertId()
+	createdNoteID, err := queries.CreateNote(ctx, notesdb.CreateNoteParams{
+		Title:     title,
+		Content:   content,
+		ImageData: imageData,
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
 	if err != nil {
 		return Note{}, err
 	}
 
 	cleanTags := parseTags(tags)
-	if err := addTags(cleanTags, id); err != nil {
+	if err := addTags(cleanTags, createdNoteID); err != nil {
 		return Note{}, err
 	}
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
-		ID:        id,
+		ID:        createdNoteID,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,
@@ -399,13 +398,28 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 	}, nil
 }
 
-func getNoteByID(ID int64) (Note, error) {
-	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
-		FROM notes
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
-	note, err := scanNote(row)
+func getNoteByID(ctx context.Context, ID int64) (Note, error) {
+	noteRow, err := queries.GetNoteByID(ctx, ID)
+	createdAt, _ := time.Parse(timeLayout, noteRow.CreatedAt)
+	updatedAt, _ := time.Parse(timeLayout, noteRow.UpdatedAt)
+
+	var deletedAt *time.Time
+	if noteRow.DeletedAt.Valid && noteRow.DeletedAt.String != "" {
+		t, _ := time.Parse(timeLayout, noteRow.DeletedAt.String)
+		deletedAt = &t
+	}
+	note := Note{
+		ID:          noteRow.ID,
+		Title:       noteRow.Title,
+		Content:     noteRow.Content,
+		ImageData:   noteRow.ImageData,
+		IsPinned:    noteRow.IsPinned,
+		IsEncrypted: noteRow.IsEncrypted,
+		CreatedAt:   createdAt,
+		UpdatedAt:   updatedAt,
+		DeletedAt:   deletedAt,
+	}
+
 	if errors.Is(err, sql.ErrNoRows) {
 		return Note{}, ErrNoteNotFound
 	}
@@ -530,7 +544,7 @@ func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t, IsEncrypted: true}, nil
 }
 
-func togglePinNoteByID(ID int64) (Note, error) {
+func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
 	result, err := db.Exec(`
 		UPDATE notes
 		SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
@@ -548,7 +562,7 @@ func togglePinNoteByID(ID int64) (Note, error) {
 		return Note{}, ErrNoteNotFound
 	}
 
-	return getNoteByID(ID)
+	return getNoteByID(ctx, ID)
 }
 
 func softDeleteNoteByID(ID int64) error {
