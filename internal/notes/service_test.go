@@ -1,6 +1,7 @@
 package notes
 
 import (
+	"context"
 	"errors"
 	"path/filepath"
 	"slices"
@@ -48,7 +49,7 @@ func TestStorageCRUD(t *testing.T) {
 		t.Fatalf("UpdateNoteByID() = %+v", updated)
 	}
 
-	result, err := ListNotes(ListParams{})
+	result, err := ListNotes(context.Background(), ListParams{})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -112,7 +113,7 @@ func TestListNotesFilters(t *testing.T) {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
-	result, err := ListNotes(ListParams{})
+	result, err := ListNotes(context.Background(), ListParams{})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -120,7 +121,7 @@ func TestListNotesFilters(t *testing.T) {
 		t.Fatalf("ListNotes() = %+v", result)
 	}
 
-	searchResult, err := ListNotes(ListParams{
+	searchResult, err := ListNotes(context.Background(), ListParams{
 		Query:    "searchable",
 		Sort:     "title",
 		Order:    "asc",
@@ -137,7 +138,7 @@ func TestListNotesFilters(t *testing.T) {
 		t.Fatalf("ListNotes(search) first page = %+v, want Alpha", searchResult.Notes)
 	}
 
-	nextPage, err := ListNotes(ListParams{
+	nextPage, err := ListNotes(context.Background(), ListParams{
 		Query:    "searchable",
 		Sort:     "title",
 		Order:    "asc",
@@ -160,7 +161,7 @@ func TestListNotesSearchMatchesSubstring(t *testing.T) {
 		t.Fatalf("AddNote() error = %v", err)
 	}
 
-	result, err := ListNotes(ListParams{Query: "lite"})
+	result, err := ListNotes(context.Background(), ListParams{Query: "lite"})
 	if err != nil {
 		t.Fatalf("ListNotes(substring search) error = %v", err)
 	}
@@ -181,7 +182,7 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
 
-	result, err := ListNotes(ListParams{EncryptedOnly: true})
+	result, err := ListNotes(context.Background(), ListParams{EncryptedOnly: true})
 	if err != nil {
 		t.Fatalf("ListNotes(encrypted only) error = %v", err)
 	}
@@ -207,7 +208,7 @@ func TestListNotesReturnsSortedTags(t *testing.T) {
 		t.Fatalf("AddNote(shared tag) error = %v", err)
 	}
 
-	result, err := ListNotes(ListParams{Sort: "title", Order: "asc"})
+	result, err := ListNotes(context.Background(), ListParams{Sort: "title", Order: "asc"})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -258,7 +259,7 @@ func TestListNotesFiltersByTag(t *testing.T) {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
-	result, err := ListNotes(ListParams{Tag: "planning", Sort: "title", Order: "asc"})
+	result, err := ListNotes(context.Background(), ListParams{Tag: "planning", Sort: "title", Order: "asc"})
 	if err != nil {
 		t.Fatalf("ListNotes(tag) error = %v", err)
 	}
@@ -269,7 +270,7 @@ func TestListNotesFiltersByTag(t *testing.T) {
 		t.Fatalf("ListNotes(tag) notes = %+v, want Personal and Work", result.Notes)
 	}
 
-	searchResult, err := ListNotes(ListParams{Query: "quarterly", Tag: "planning"})
+	searchResult, err := ListNotes(context.Background(), ListParams{Query: "quarterly", Tag: "planning"})
 	if err != nil {
 		t.Fatalf("ListNotes(search tag) error = %v", err)
 	}
@@ -277,7 +278,7 @@ func TestListNotesFiltersByTag(t *testing.T) {
 		t.Fatalf("ListNotes(search tag) = %+v, want work note", searchResult)
 	}
 
-	tags, err := ListTags()
+	tags, err := ListTags(context.Background())
 	if err != nil {
 		t.Fatalf("ListTags() error = %v", err)
 	}
@@ -383,7 +384,7 @@ func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 		t.Fatalf("TogglePinNoteByID() = %+v, want pinned", pinned)
 	}
 
-	result, err := ListNotes(ListParams{Sort: "title", Order: "desc"})
+	result, err := ListNotes(context.Background(), ListParams{Sort: "title", Order: "desc"})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -423,7 +424,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("GetNoteByID() after soft delete error = %v, want %v", err, ErrNoteNotFound)
 	}
 
-	archived, err := ListArchivedNotes()
+	archived, err := ListArchivedNotes(context.Background())
 	if err != nil {
 		t.Fatalf("ListArchivedNotes() error = %v", err)
 	}

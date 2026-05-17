@@ -2,6 +2,7 @@ package notes
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"html/template"
 	"io"
@@ -137,7 +138,7 @@ func TestCreateNoteWithImage(t *testing.T) {
 		t.Fatalf("CreateNote Location = %q, want /note/1", got)
 	}
 
-	result, err := ListNotes(ListParams{})
+	result, err := ListNotes(context.Background(), ListParams{})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -186,7 +187,7 @@ func TestCreatePrivateNote(t *testing.T) {
 		t.Fatalf("is_encrypted = false, want true")
 	}
 
-	result, err := ListNotes(ListParams{})
+	result, err := ListNotes(context.Background(), ListParams{})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
@@ -349,7 +350,7 @@ func TestCreateNoteNeedsTitle(t *testing.T) {
 		t.Fatalf("CreateNote status = %d, want %d", rec.Code, http.StatusBadRequest)
 	}
 
-	result, err := ListNotes(ListParams{})
+	result, err := ListNotes(context.Background(), ListParams{})
 	if err != nil {
 		t.Fatalf("ListNotes() error = %v", err)
 	}
