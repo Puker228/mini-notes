@@ -10,6 +10,33 @@ import (
 	"database/sql"
 )
 
+const createNote = `-- name: CreateNote :one
+INSERT INTO notes (title, content, image_data, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?)
+RETURNING ID
+`
+
+type CreateNoteParams struct {
+	Title     string
+	Content   string
+	ImageData string
+	CreatedAt string
+	UpdatedAt string
+}
+
+func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createNote,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getNoteByID = `-- name: GetNoteByID :one
 SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 FROM notes

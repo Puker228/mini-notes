@@ -332,29 +332,28 @@ func addTags(cleanTags []string, noteID int64) error {
 	return nil
 }
 
-func addNote(title, content, imageData, tags string) (Note, error) {
+func addNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?);
-	`, title, content, imageData, now, now)
-	if err != nil {
-		return Note{}, err
-	}
 
-	id, err := result.LastInsertId()
+	createdNoteID, err := queries.CreateNote(ctx, notesdb.CreateNoteParams{
+		Title:     title,
+		Content:   content,
+		ImageData: imageData,
+		CreatedAt: now,
+		UpdatedAt: now,
+	})
 	if err != nil {
 		return Note{}, err
 	}
 
 	cleanTags := parseTags(tags)
-	if err := addTags(cleanTags, id); err != nil {
+	if err := addTags(cleanTags, createdNoteID); err != nil {
 		return Note{}, err
 	}
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
-		ID:        id,
+		ID:        createdNoteID,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,

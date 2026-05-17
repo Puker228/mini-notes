@@ -23,8 +23,8 @@ func ListTags(ctx context.Context) ([]string, error) {
 	return listTags(ctx)
 }
 
-func AddNote(title, content, imageData, tags string) (Note, error) {
-	return addNote(title, content, imageData, tags)
+func AddNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {
+	return addNote(ctx, title, content, imageData, tags)
 }
 
 func AddPrivateNote(title, content, imageData, password string) (Note, error) {
