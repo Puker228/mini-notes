@@ -7,7 +7,3 @@ sql:
       go:
         package: "db"
         out: "internal/notes/db"
-        sql_package: "database/sql"
-        emit_empty_slices: true
-        query_parameter_limit: 0
-        emit_pointers_for_null_types: true

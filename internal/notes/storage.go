@@ -239,27 +239,7 @@ func renderMD(content string) (string, error) {
 }
 
 func listTagsByNoteID(noteID int64) ([]string, error) {
-	rows, err := db.Query(`
-		SELECT tags.name
-		FROM tags
-		JOIN note_tag ON note_tag.tag_id = tags.id
-		WHERE note_tag.note_id = ?
-		ORDER BY LOWER(tags.name), tags.name
-	`, noteID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, err
-		}
-		tags = append(tags, tag)
-	}
-	return tags, rows.Err()
+	return queries.ListTagsByNoteID(context.Background(), noteID)
 }
 
 func attachTags(notes []Note) error {

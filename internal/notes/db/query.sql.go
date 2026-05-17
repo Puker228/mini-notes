@@ -25,7 +25,38 @@ func (q *Queries) ListTags(ctx context.Context) ([]string, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []string{}
+	var items []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return nil, err
+		}
+		items = append(items, name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listTagsByNoteID = `-- name: ListTagsByNoteID :many
+SELECT tags.name
+FROM tags
+         JOIN note_tag ON note_tag.tag_id = tags.id
+WHERE note_tag.note_id = ?1
+ORDER BY LOWER(tags.name), tags.name
+`
+
+func (q *Queries) ListTagsByNoteID(ctx context.Context, noteID int64) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listTagsByNoteID, noteID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {

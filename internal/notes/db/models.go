@@ -4,6 +4,10 @@
 
 package db
 
+import (
+	"database/sql"
+)
+
 type Note struct {
 	ID              int64
 	Title           string
@@ -11,9 +15,9 @@ type Note struct {
 	ImageData       string
 	CreatedAt       string
 	UpdatedAt       string
-	DeletedAt       *string
-	EncryptionSalt  *string
-	EncryptionNonce *string
+	DeletedAt       sql.NullString
+	EncryptionSalt  sql.NullString
+	EncryptionNonce sql.NullString
 	IsPinned        bool
 	IsEncrypted     bool
 }
