@@ -25,7 +25,7 @@ func setupTestDB(t *testing.T) {
 func TestStorageCRUD(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -64,7 +64,7 @@ func TestStoragePersists(t *testing.T) {
 		t.Fatalf("InitDB() error = %v", err)
 	}
 
-	created, err := AddNote("title", "content", "image-data", "")
+	created, err := AddNote(context.Background(), "title", "content", "image-data", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -96,15 +96,15 @@ func TestStoragePersists(t *testing.T) {
 func TestListNotesFilters(t *testing.T) {
 	setupTestDB(t)
 
-	alpha, err := AddNote("Alpha", "first searchable note", "", "")
+	alpha, err := AddNote(context.Background(), "Alpha", "first searchable note", "", "")
 	if err != nil {
 		t.Fatalf("AddNote(alpha) error = %v", err)
 	}
-	beta, err := AddNote("Beta", "second note", "", "")
+	beta, err := AddNote(context.Background(), "Beta", "second note", "", "")
 	if err != nil {
 		t.Fatalf("AddNote(beta) error = %v", err)
 	}
-	gamma, err := AddNote("Gamma", "third searchable note", "", "")
+	gamma, err := AddNote(context.Background(), "Gamma", "third searchable note", "", "")
 	if err != nil {
 		t.Fatalf("AddNote(gamma) error = %v", err)
 	}
@@ -156,7 +156,7 @@ func TestListNotesFilters(t *testing.T) {
 func TestListNotesSearchMatchesSubstring(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddNote("Database", "sqlite", "", "")
+	created, err := AddNote(context.Background(), "Database", "sqlite", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -173,7 +173,7 @@ func TestListNotesSearchMatchesSubstring(t *testing.T) {
 func TestListNotesEncryptedOnly(t *testing.T) {
 	setupTestDB(t)
 
-	regular, err := AddNote("Regular", "plain content", "", "")
+	regular, err := AddNote(context.Background(), "Regular", "plain content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -200,11 +200,11 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 func TestListNotesReturnsSortedTags(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddNote("Tagged", "content", "", "beta, Alpha, alpha")
+	created, err := AddNote(context.Background(), "Tagged", "content", "", "beta, Alpha, alpha")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
-	if _, err := AddNote("Z shared tag", "content", "", "beta"); err != nil {
+	if _, err := AddNote(context.Background(), "Z shared tag", "content", "", "beta"); err != nil {
 		t.Fatalf("AddNote(shared tag) error = %v", err)
 	}
 
@@ -243,15 +243,15 @@ func TestListNotesReturnsSortedTags(t *testing.T) {
 func TestListNotesFiltersByTag(t *testing.T) {
 	setupTestDB(t)
 
-	work, err := AddNote("Work", "quarterly plan", "", "work, planning")
+	work, err := AddNote(context.Background(), "Work", "quarterly plan", "", "work, planning")
 	if err != nil {
 		t.Fatalf("AddNote(work) error = %v", err)
 	}
-	personal, err := AddNote("Personal", "weekend plan", "", "personal, planning")
+	personal, err := AddNote(context.Background(), "Personal", "weekend plan", "", "personal, planning")
 	if err != nil {
 		t.Fatalf("AddNote(personal) error = %v", err)
 	}
-	archived, err := AddNote("Archived", "old work", "", "archive-only")
+	archived, err := AddNote(context.Background(), "Archived", "old work", "", "archive-only")
 	if err != nil {
 		t.Fatalf("AddNote(archived) error = %v", err)
 	}
@@ -367,11 +367,11 @@ func TestUpdatePrivateNoteByIDRejectsWrongPassword(t *testing.T) {
 func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 	setupTestDB(t)
 
-	alpha, err := AddNote("Alpha", "first", "", "")
+	alpha, err := AddNote(context.Background(), "Alpha", "first", "", "")
 	if err != nil {
 		t.Fatalf("AddNote(alpha) error = %v", err)
 	}
-	beta, err := AddNote("Beta", "second", "", "")
+	beta, err := AddNote(context.Background(), "Beta", "second", "", "")
 	if err != nil {
 		t.Fatalf("AddNote(beta) error = %v", err)
 	}
@@ -410,7 +410,7 @@ func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 func TestArchiveRestoreDelete(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -456,7 +456,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 func TestUpdateNoteFields(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddNote("title", "content", "old-image", "")
+	created, err := AddNote(context.Background(), "title", "content", "old-image", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}

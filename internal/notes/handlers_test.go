@@ -315,7 +315,7 @@ func TestUnlockPrivateEditFormWrongPassword(t *testing.T) {
 func TestShowEditFormUsesOriginalContent(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("markdown note", "# Heading\n\n**bold**", "", "")
+	created, err := AddNote(context.Background(), "markdown note", "# Heading\n\n**bold**", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -425,7 +425,7 @@ func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 func TestUpdateNoteKeepsImage(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("old title", "old content", "old-image", "")
+	created, err := AddNote(context.Background(), "old title", "old content", "old-image", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -456,7 +456,7 @@ func TestUpdateNoteKeepsImage(t *testing.T) {
 func TestDeleteRestorePermanent(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
@@ -496,7 +496,7 @@ func TestDeleteRestorePermanent(t *testing.T) {
 func TestTogglePinNoteHandler(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddNote("title", "content", "", "")
+	created, err := AddNote(context.Background(), "title", "content", "", "")
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
