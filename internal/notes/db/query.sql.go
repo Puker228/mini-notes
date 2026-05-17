@@ -7,7 +7,69 @@ package db
 
 import (
 	"context"
+	"database/sql"
 )
+
+const listArchivedNotes = `-- name: ListArchivedNotes :many
+SELECT id,
+       title,
+       content,
+       image_data,
+       created_at,
+       updated_at,
+       deleted_at,
+       is_pinned,
+       is_encrypted
+FROM notes
+WHERE deleted_at IS NOT NULL
+  AND deleted_at != ''
+ORDER BY deleted_at DESC
+`
+
+type ListArchivedNotesRow struct {
+	ID          int64
+	Title       string
+	Content     string
+	ImageData   string
+	CreatedAt   string
+	UpdatedAt   string
+	DeletedAt   sql.NullString
+	IsPinned    bool
+	IsEncrypted bool
+}
+
+func (q *Queries) ListArchivedNotes(ctx context.Context) ([]ListArchivedNotesRow, error) {
+	rows, err := q.db.QueryContext(ctx, listArchivedNotes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListArchivedNotesRow
+	for rows.Next() {
+		var i ListArchivedNotesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.Title,
+			&i.Content,
+			&i.ImageData,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.IsPinned,
+			&i.IsEncrypted,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const listTags = `-- name: ListTags :many
 SELECT tags.name

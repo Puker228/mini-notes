@@ -254,26 +254,36 @@ func attachTags(notes []Note) error {
 }
 
 func listArchivedNotes() ([]Note, error) {
-	rows, err := db.Query(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
-		FROM notes
-		WHERE deleted_at IS NOT NULL AND deleted_at != ''
-		ORDER BY deleted_at DESC
-	`)
+	archivedNotes, err := queries.ListArchivedNotes(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var notes []Note
-	for rows.Next() {
-		note, err := scanNote(rows)
-		if err != nil {
-			return nil, err
+	notes := make([]Note, 0, len(archivedNotes))
+	for _, archivedNote := range archivedNotes {
+		createdAt, _ := time.Parse(timeLayout, archivedNote.CreatedAt)
+		updatedAt, _ := time.Parse(timeLayout, archivedNote.UpdatedAt)
+
+		var deletedAt *time.Time
+		if archivedNote.DeletedAt.Valid && archivedNote.DeletedAt.String != "" {
+			t, _ := time.Parse(timeLayout, archivedNote.DeletedAt.String)
+			deletedAt = &t
 		}
-		notes = append(notes, note)
+
+		notes = append(notes, Note{
+			ID:          archivedNote.ID,
+			Title:       archivedNote.Title,
+			Content:     archivedNote.Content,
+			ImageData:   archivedNote.ImageData,
+			IsPinned:    archivedNote.IsPinned,
+			IsEncrypted: archivedNote.IsEncrypted,
+			CreatedAt:   createdAt,
+			UpdatedAt:   updatedAt,
+			DeletedAt:   deletedAt,
+		})
 	}
-	return notes, rows.Err()
+
+	return notes, nil
 }
 
 func parseTags(tags string) []string {

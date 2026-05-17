@@ -13,3 +13,18 @@ FROM tags
          JOIN note_tag ON note_tag.tag_id = tags.id
 WHERE note_tag.note_id = sqlc.arg(note_id)
 ORDER BY LOWER(tags.name), tags.name;
+
+-- name: ListArchivedNotes :many
+SELECT id,
+       title,
+       content,
+       image_data,
+       created_at,
+       updated_at,
+       deleted_at,
+       is_pinned,
+       is_encrypted
+FROM notes
+WHERE deleted_at IS NOT NULL
+  AND deleted_at != ''
+ORDER BY deleted_at DESC
