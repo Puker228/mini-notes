@@ -1,12 +1,15 @@
 package notes
 
 import (
+	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	notesdb "github.com/Puker228/mini-notes/internal/notes/db"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
@@ -15,8 +18,12 @@ import (
 )
 
 var db *sql.DB
+var queries *notesdb.Queries
 
 const timeLayout = time.RFC3339
+
+//go:embed db/schema.sql
+var schemaSQL string
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -35,72 +42,7 @@ func InitDB(path string) error {
 		return err
 	}
 
-	if _, err := database.Exec(`
-		CREATE TABLE IF NOT EXISTS notes
-		(
-			id               INTEGER PRIMARY KEY AUTOINCREMENT,
-			title            TEXT NOT NULL,
-			content          TEXT NOT NULL,
-			image_data       TEXT NOT NULL DEFAULT '',
-			created_at       TEXT NOT NULL DEFAULT '',
-			updated_at       TEXT NOT NULL DEFAULT '',
-			deleted_at       TEXT,
-			encryption_salt  TEXT,
-			encryption_nonce TEXT,
-			is_pinned        BOOL          DEFAULT 0,
-			is_encrypted     BOOL          DEFAULT 0
-		);
-
-		CREATE TABLE IF NOT EXISTS tags
-		(
-			id   INTEGER PRIMARY KEY AUTOINCREMENT,
-			name VARCHAR(255) UNIQUE
-		);
-		
-		CREATE TABLE IF NOT EXISTS note_tag
-		(
-			note_id INTEGER NOT NULL REFERENCES notes (id) ON DELETE CASCADE,
-			tag_id  INTEGER NOT NULL REFERENCES tags (id) ON DELETE CASCADE,
-		
-			PRIMARY KEY (note_id, tag_id)
-		);
-		
-		CREATE VIRTUAL TABLE IF NOT EXISTS notes_fts
-			USING fts5
-		(
-			title,
-			content,
-			content='notes',
-			content_rowid='id'
-		);
-		
-		CREATE TRIGGER IF NOT EXISTS notes_ai
-			AFTER INSERT
-			ON notes
-		BEGIN
-			INSERT INTO notes_fts(rowid, title, content)
-			VALUES (new.id, new.title, new.content);
-		END;
-		
-		CREATE TRIGGER IF NOT EXISTS notes_ad
-			AFTER DELETE
-			ON notes
-		BEGIN
-			INSERT INTO notes_fts(notes_fts, rowid, title, content)
-			VALUES ('delete', old.id, old.title, old.content);
-		END;
-		
-		CREATE TRIGGER IF NOT EXISTS notes_au
-			AFTER UPDATE
-			ON notes
-		BEGIN
-			INSERT INTO notes_fts(notes_fts, rowid, title, content)
-			VALUES ('delete', old.id, old.title, old.content);
-		
-			INSERT INTO notes_fts(rowid, title, content)
-			VALUES (new.id, new.title, new.content);
-		END;
-	`); err != nil {
+	if _, err := database.Exec(schemaSQL); err != nil {
 		_ = database.Close()
 		return err
 	}
@@ -135,6 +77,7 @@ func InitDB(path string) error {
 	}
 
 	db = database
+	queries = notesdb.New(database)
 	return nil
 }
 
@@ -144,6 +87,7 @@ func CloseDB() error {
 	}
 	err := db.Close()
 	db = nil
+	queries = nil
 	return err
 }
 
@@ -276,29 +220,7 @@ func listNotes(p ListParams) (ListResult, error) {
 }
 
 func listTags() ([]string, error) {
-	rows, err := db.Query(`
-		SELECT tags.name
-		FROM tags
-		JOIN note_tag ON note_tag.tag_id = tags.id
-		JOIN notes ON notes.id = note_tag.note_id
-		WHERE (notes.deleted_at IS NULL OR notes.deleted_at = '')
-		GROUP BY tags.id, tags.name
-		ORDER BY LOWER(tags.name), tags.name
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, err
-		}
-		tags = append(tags, tag)
-	}
-	return tags, rows.Err()
+	return queries.ListTags(context.Background())
 }
 
 func renderMD(content string) (string, error) {
@@ -317,27 +239,7 @@ func renderMD(content string) (string, error) {
 }
 
 func listTagsByNoteID(noteID int64) ([]string, error) {
-	rows, err := db.Query(`
-		SELECT tags.name
-		FROM tags
-		JOIN note_tag ON note_tag.tag_id = tags.id
-		WHERE note_tag.note_id = ?
-		ORDER BY LOWER(tags.name), tags.name
-	`, noteID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, err
-		}
-		tags = append(tags, tag)
-	}
-	return tags, rows.Err()
+	return queries.ListTagsByNoteID(context.Background(), noteID)
 }
 
 func attachTags(notes []Note) error {
@@ -352,26 +254,36 @@ func attachTags(notes []Note) error {
 }
 
 func listArchivedNotes() ([]Note, error) {
-	rows, err := db.Query(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
-		FROM notes
-		WHERE deleted_at IS NOT NULL AND deleted_at != ''
-		ORDER BY deleted_at DESC
-	`)
+	archivedNotes, err := queries.ListArchivedNotes(context.Background())
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
-	var notes []Note
-	for rows.Next() {
-		note, err := scanNote(rows)
-		if err != nil {
-			return nil, err
+	notes := make([]Note, 0, len(archivedNotes))
+	for _, archivedNote := range archivedNotes {
+		createdAt, _ := time.Parse(timeLayout, archivedNote.CreatedAt)
+		updatedAt, _ := time.Parse(timeLayout, archivedNote.UpdatedAt)
+
+		var deletedAt *time.Time
+		if archivedNote.DeletedAt.Valid && archivedNote.DeletedAt.String != "" {
+			t, _ := time.Parse(timeLayout, archivedNote.DeletedAt.String)
+			deletedAt = &t
 		}
-		notes = append(notes, note)
+
+		notes = append(notes, Note{
+			ID:          archivedNote.ID,
+			Title:       archivedNote.Title,
+			Content:     archivedNote.Content,
+			ImageData:   archivedNote.ImageData,
+			IsPinned:    archivedNote.IsPinned,
+			IsEncrypted: archivedNote.IsEncrypted,
+			CreatedAt:   createdAt,
+			UpdatedAt:   updatedAt,
+			DeletedAt:   deletedAt,
+		})
 	}
-	return notes, rows.Err()
+
+	return notes, nil
 }
 
 func parseTags(tags string) []string {
