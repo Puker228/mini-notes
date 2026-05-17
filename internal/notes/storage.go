@@ -1,12 +1,15 @@
 package notes
 
 import (
+	"context"
 	"database/sql"
+	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
+	notesdb "github.com/Puker228/mini-notes/internal/notes/db"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
@@ -15,8 +18,12 @@ import (
 )
 
 var db *sql.DB
+var queries *notesdb.Queries
 
 const timeLayout = time.RFC3339
+
+//go:embed db/schema.sql
+var schemaSQL string
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -33,6 +40,24 @@ func InitDB(path string) error {
 	if err := database.Ping(); err != nil {
 		_ = database.Close()
 		return err
+	}
+
+	if _, err := database.Exec(schemaSQL); err != nil {
+		_ = database.Close()
+		return err
+	}
+
+	for _, migration := range []string{
+		`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';`,
+		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
+		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
+		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
+		`ALTER TABLE notes ADD COLUMN is_pinned BOOL DEFAULT 0;`,
+		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
+	} {
+		_, _ = database.Exec(migration)
 	}
 
 	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
@@ -52,6 +77,7 @@ func InitDB(path string) error {
 	}
 
 	db = database
+	queries = notesdb.New(database)
 	return nil
 }
 
@@ -61,6 +87,7 @@ func CloseDB() error {
 	}
 	err := db.Close()
 	db = nil
+	queries = nil
 	return err
 }
 
@@ -193,29 +220,7 @@ func listNotes(p ListParams) (ListResult, error) {
 }
 
 func listTags() ([]string, error) {
-	rows, err := db.Query(`
-		SELECT tags.name
-		FROM tags
-		JOIN note_tag ON note_tag.tag_id = tags.id
-		JOIN notes ON notes.id = note_tag.note_id
-		WHERE (notes.deleted_at IS NULL OR notes.deleted_at = '')
-		GROUP BY tags.id, tags.name
-		ORDER BY LOWER(tags.name), tags.name
-	`)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var tags []string
-	for rows.Next() {
-		var tag string
-		if err := rows.Scan(&tag); err != nil {
-			return nil, err
-		}
-		tags = append(tags, tag)
-	}
-	return tags, rows.Err()
+	return queries.ListTags(context.Background())
 }
 
 func renderMD(content string) (string, error) {
