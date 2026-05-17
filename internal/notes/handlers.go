@@ -75,6 +75,7 @@ func notePreview(content string) string {
 }
 
 func (h *Handler) ListNotes(c *echo.Context) error {
+	ctx := c.Request().Context()
 	p := ListParams{
 		Query:         c.QueryParam("q"),
 		Tag:           c.QueryParam("tag"),
@@ -87,14 +88,14 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 		p.Page = page
 	}
 
-	result, err := ListNotes(p)
+	result, err := ListNotes(ctx, p)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list notes"})
 	}
 	if err := renderNotesForDisplay(&result); err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to render notes"})
 	}
-	tags, err := ListTags()
+	tags, err := ListTags(ctx)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list tags"})
 	}
@@ -111,7 +112,9 @@ func (h *Handler) ListNotes(c *echo.Context) error {
 }
 
 func (h *Handler) ListArchive(c *echo.Context) error {
-	notes, err := ListArchivedNotes()
+	ctx := c.Request().Context()
+
+	notes, err := ListArchivedNotes(ctx)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to list archive"})
 	}

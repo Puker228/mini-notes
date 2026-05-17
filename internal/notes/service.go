@@ -1,6 +1,7 @@
 package notes
 
 import (
+	"context"
 	"errors"
 )
 
@@ -10,16 +11,16 @@ var (
 	ErrNoteNotEncrypted = errors.New("note is not encrypted")
 )
 
-func ListNotes(p ListParams) (ListResult, error) {
-	return listNotes(p)
+func ListNotes(ctx context.Context, p ListParams) (ListResult, error) {
+	return listNotes(ctx, p)
 }
 
-func ListArchivedNotes() ([]Note, error) {
-	return listArchivedNotes()
+func ListArchivedNotes(ctx context.Context) ([]Note, error) {
+	return listArchivedNotes(ctx)
 }
 
-func ListTags() ([]string, error) {
-	return listTags()
+func ListTags(ctx context.Context) ([]string, error) {
+	return listTags(ctx)
 }
 
 func AddNote(title, content, imageData, tags string) (Note, error) {

@@ -17,8 +17,10 @@ import (
 	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
-var db *sql.DB
-var queries *notesdb.Queries
+var (
+	db      *sql.DB
+	queries *notesdb.Queries
+)
 
 const timeLayout = time.RFC3339
 
@@ -116,7 +118,7 @@ func buildFTSQuery(query string) string {
 	return strings.Join(parts, " AND ")
 }
 
-func listNotes(p ListParams) (ListResult, error) {
+func listNotes(ctx context.Context, p ListParams) (ListResult, error) {
 	if p.PageSize <= 0 {
 		p.PageSize = 10
 	}
@@ -219,8 +221,8 @@ func listNotes(p ListParams) (ListResult, error) {
 	}, nil
 }
 
-func listTags() ([]string, error) {
-	return queries.ListTags(context.Background())
+func listTags(ctx context.Context) ([]string, error) {
+	return queries.ListTags(ctx)
 }
 
 func renderMD(content string) (string, error) {
@@ -253,8 +255,8 @@ func attachTags(notes []Note) error {
 	return nil
 }
 
-func listArchivedNotes() ([]Note, error) {
-	archivedNotes, err := queries.ListArchivedNotes(context.Background())
+func listArchivedNotes(ctx context.Context) ([]Note, error) {
+	archivedNotes, err := queries.ListArchivedNotes(ctx)
 	if err != nil {
 		return nil, err
 	}
