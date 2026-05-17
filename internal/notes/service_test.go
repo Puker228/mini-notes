@@ -33,7 +33,7 @@ func TestStorageCRUD(t *testing.T) {
 		t.Fatal("AddNote() returned zero ID")
 	}
 
-	got, err := GetNoteByID(created.ID)
+	got, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}
@@ -81,7 +81,7 @@ func TestStoragePersists(t *testing.T) {
 		}
 	})
 
-	got, err := GetNoteByID(created.ID)
+	got, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}
@@ -229,7 +229,7 @@ func TestListNotesReturnsSortedTags(t *testing.T) {
 		}
 	}
 
-	detail, err := GetNoteByID(created.ID)
+	detail, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}
@@ -376,7 +376,7 @@ func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 		t.Fatalf("AddNote(beta) error = %v", err)
 	}
 
-	pinned, err := TogglePinNoteByID(alpha.ID)
+	pinned, err := TogglePinNoteByID(context.Background(), alpha.ID)
 	if err != nil {
 		t.Fatalf("TogglePinNoteByID() error = %v", err)
 	}
@@ -398,7 +398,7 @@ func TestTogglePinNoteOrdersPinnedFirst(t *testing.T) {
 		t.Fatalf("ListNotes() second note = %+v, want Beta", result.Notes[1])
 	}
 
-	unpinned, err := TogglePinNoteByID(alpha.ID)
+	unpinned, err := TogglePinNoteByID(context.Background(), alpha.ID)
 	if err != nil {
 		t.Fatalf("TogglePinNoteByID(unpin) error = %v", err)
 	}
@@ -419,7 +419,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
-	_, err = GetNoteByID(created.ID)
+	_, err = GetNoteByID(context.Background(), created.ID)
 	if !errors.Is(err, ErrNoteNotFound) {
 		t.Fatalf("GetNoteByID() after soft delete error = %v, want %v", err, ErrNoteNotFound)
 	}
@@ -439,7 +439,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("RestoreNoteByID() error = %v", err)
 	}
 
-	if _, err := GetNoteByID(created.ID); err != nil {
+	if _, err := GetNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("GetNoteByID() after restore error = %v", err)
 	}
 
@@ -447,7 +447,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("PermanentDeleteNoteByID() error = %v", err)
 	}
 
-	_, err = GetNoteByID(created.ID)
+	_, err = GetNoteByID(context.Background(), created.ID)
 	if !errors.Is(err, ErrNoteNotFound) {
 		t.Fatalf("GetNoteByID() after permanent delete error = %v, want %v", err, ErrNoteNotFound)
 	}
@@ -469,7 +469,7 @@ func TestUpdateNoteFields(t *testing.T) {
 		t.Fatalf("UpdateNoteByID() = %+v", updated)
 	}
 
-	got, err := GetNoteByID(created.ID)
+	got, err := GetNoteByID(context.Background(), created.ID)
 	if err != nil {
 		t.Fatalf("GetNoteByID() error = %v", err)
 	}
@@ -493,7 +493,7 @@ func TestStorageNotFound(t *testing.T) {
 			return err
 		}},
 		{name: "toggle pin", fn: func() error {
-			_, err := TogglePinNoteByID(404)
+			_, err := TogglePinNoteByID(context.Background(), 404)
 			return err
 		}},
 		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(404) }},
