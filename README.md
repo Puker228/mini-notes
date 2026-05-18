@@ -6,14 +6,20 @@ templates through Echo.
 
 ## Features
 
-- Create notes with a title and content
-- Attach an optional image to a note
+- Create notes with a title and Markdown content
+- Render Markdown safely with HTML sanitization
+- Attach an optional image, stored on disk and served from `/uploads`
+- Tag notes and filter the list by tag
+- Search notes with SQLite full-text search (FTS5)
+- Sort by creation date, update date, or title, with pagination
+- Pin notes to keep them at the top of the list
+- Create private, password-encrypted notes and decrypt them on demand
 - View all notes in reverse creation order
 - Open a note detail page
 - Edit existing notes
 - Archive, restore, and permanently delete notes
 - Store data locally in SQLite
-- Build a standalone binary with embedded templates
+- Build a standalone binary with embedded templates and assets
 
 ## Requirements
 
@@ -33,7 +39,7 @@ http://localhost:8800/note
 ```
 
 By default, the SQLite database is created as `notes.db` in the project
-directory.
+directory, and uploaded images are stored in the `uploads/` directory.
 
 Write logs to a file:
 
@@ -83,9 +89,10 @@ Stop the app:
 docker compose down
 ```
 
-The Compose setup exposes port `8800`, sets `NOTES_DB_PATH=/data/notes.db`, and
+The Compose setup exposes port `8800`, sets `NOTES_DB_PATH=/data/notes.db`,
+`NOTES_UPLOADS_PATH=/data/uploads`, and
 `NOTES_LOG_PATH=/data/logs/mini-notes.log`, and uses the named volume
-`mini-notes-data` for persistent SQLite storage and logs.
+`mini-notes-data` for persistent SQLite storage, uploaded images, and logs.
 
 ## Configuration
 
@@ -93,6 +100,12 @@ You can change the database path with `NOTES_DB_PATH`:
 
 ```sh
 NOTES_DB_PATH=/tmp/mini-notes.db go run ./cmd/app
+```
+
+You can change where uploaded images are stored with `NOTES_UPLOADS_PATH`:
+
+```sh
+NOTES_UPLOADS_PATH=/tmp/mini-notes-uploads go run ./cmd/app
 ```
 
 You can write logs to a file with `NOTES_LOG_PATH`:
@@ -116,6 +129,12 @@ make build
 Builds the `mini-notes` binary.
 
 ```sh
+make run-bin
+```
+
+Runs the already built `mini-notes` binary.
+
+```sh
 make start
 ```
 
@@ -128,16 +147,35 @@ make release
 Builds and starts the app.
 
 ```sh
+make test
+```
+
+Runs the test suite.
+
+```sh
+make fmt
+```
+
+Formats the `cmd` and `internal` packages with `gofmt`.
+
+```sh
 make build-all
 ```
 
 Builds release binaries for macOS, Linux, and Windows into `dist/`.
 
 ```sh
-make clean
+make clean-apps
 ```
 
 Removes generated binaries and the `dist/` directory.
+
+```sh
+make clean-all
+```
+
+Removes binaries, the `dist/` directory, the `uploads/` directory, and the
+SQLite database files.
 
 ```sh
 make docker-build
@@ -170,18 +208,32 @@ make docker-logs
 
 Follows Docker Compose logs for the app service.
 
+## Database Queries
+
+SQL queries live in `internal/notes/db/query.sql` and the schema in
+`internal/notes/db/schema.sql`. Type-safe Go code is generated from them with
+[sqlc](https://sqlc.dev), configured in `sqlc.yaml`:
+
+```sh
+sqlc generate
+```
+
 ## Project Structure
 
 ```text
 cmd/app/main.go              Application entry point and HTTP routes
 cmd/app/templates/           HTML templates embedded into the binary
-internal/notes/model.go      Note model
+cmd/app/static/              CSS assets embedded into the binary
+internal/notes/model.go      Note model and list parameters
 internal/notes/service.go    Notes service API
 internal/notes/storage.go    SQLite storage logic
 internal/notes/handlers.go   HTTP handlers
+internal/notes/db/           sqlc schema, queries, and generated code
 internal/notes/*_test.go     Tests
 Dockerfile                   Multi-stage Docker build
 docker-compose.yaml          Docker Compose service and persistent volume
+.github/workflows/test.yaml  CI workflow that runs the tests
+sqlc.yaml                    sqlc configuration
 ```
 
 ## Tests
@@ -192,3 +244,6 @@ The tests cover note storage, HTTP handlers, and Echo CSRF configuration.
 ```sh
 go test ./...
 ```
+
+Tests also run automatically on every push and pull request to `main` through
+the GitHub Actions workflow in `.github/workflows/test.yaml`.
