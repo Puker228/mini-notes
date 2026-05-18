@@ -471,18 +471,15 @@ func decryptNoteByID(ctx context.Context, ID int64, password string) (Note, erro
 	return note, nil
 }
 
-func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
+func updateNoteByID(ctx context.Context, ID int64, title, content, imageData string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		UPDATE notes
-		SET title = ?, content = ?, image_data = ?, updated_at = ?
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, title, content, imageData, now, ID)
-	if err != nil {
-		return Note{}, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := queries.UpdateNoteByID(ctx, notesdb.UpdateNoteByIDParams{
+		Title:     title,
+		Content:   content,
+		ImageData: imageData,
+		UpdatedAt: now,
+		ID:        ID,
+	})
 	if err != nil {
 		return Note{}, err
 	}
@@ -494,7 +491,7 @@ func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t}, nil
 }
 
-func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
+func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
 	var ciphertext, salt, nonce []byte
 	var isEncrypted bool
 

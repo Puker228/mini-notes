@@ -324,3 +324,31 @@ func (q *Queries) TogglePinNoteByID(ctx context.Context, id int64) (int64, error
 	}
 	return result.RowsAffected()
 }
+
+const updateNoteByID = `-- name: UpdateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type UpdateNoteByIDParams struct {
+	Title     string
+	Content   string
+	ImageData string
+	UpdatedAt string
+	ID        int64
+}
+
+func (q *Queries) UpdateNoteByID(ctx context.Context, arg UpdateNoteByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateNoteByID,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

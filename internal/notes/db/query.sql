@@ -63,3 +63,9 @@ WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 
 -- name: PermanentDeleteNoteByID :execrows
 DELETE FROM notes WHERE id = ?;
+
+-- name: UpdateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
