@@ -580,12 +580,8 @@ func softDeleteNoteByID(ctx context.Context, ID int64) error {
 	return nil
 }
 
-func restoreNoteByID(ID int64) error {
-	result, err := db.Exec(`UPDATE notes SET deleted_at = NULL WHERE id = ?;`, ID)
-	if err != nil {
-		return err
-	}
-	rows, err := result.RowsAffected()
+func restoreNoteByID(ctx context.Context, ID int64) error {
+	rows, err := queries.RestoreNoteByID(ctx, ID)
 	if err != nil {
 		return err
 	}

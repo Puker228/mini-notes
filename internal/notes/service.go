@@ -55,8 +55,8 @@ func SoftDeleteNoteByID(ctx context.Context, ID int64) error {
 	return softDeleteNoteByID(ctx, ID)
 }
 
-func RestoreNoteByID(ID int64) error {
-	return restoreNoteByID(ID)
+func RestoreNoteByID(ctx context.Context, ID int64) error {
+	return restoreNoteByID(ctx, ID)
 }
 
 func PermanentDeleteNoteByID(ID int64) error {

@@ -43,3 +43,5 @@ RETURNING ID;
 UPDATE notes SET deleted_at = sqlc.arg(deleted_at)
 WHERE id = sqlc.arg(id) AND (deleted_at IS NULL OR deleted_at = '');
 
+-- name: RestoreNoteByID :execrows
+UPDATE notes SET deleted_at = NULL WHERE id = ?;
