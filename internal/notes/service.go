@@ -31,8 +31,8 @@ func AddPrivateNote(ctx context.Context, title, content, imageData, password str
 	return addPrivateNote(ctx, title, content, imageData, password)
 }
 
-func DecryptNoteByID(ID int64, password string) (Note, error) {
-	return decryptNoteByID(ID, password)
+func DecryptNoteByID(ctx context.Context, ID int64, password string) (Note, error) {
+	return decryptNoteByID(ctx, ID, password)
 }
 
 func GetNoteByID(ctx context.Context, ID int64) (Note, error) {

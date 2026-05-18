@@ -105,6 +105,45 @@ func (q *Queries) GetNoteByID(ctx context.Context, id int64) (GetNoteByIDRow, er
 	return i, err
 }
 
+const getPrivateNoteByID = `-- name: GetPrivateNoteByID :one
+SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted, encryption_salt, encryption_nonce
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type GetPrivateNoteByIDRow struct {
+	ID              int64
+	Title           string
+	Content         string
+	ImageData       string
+	CreatedAt       string
+	UpdatedAt       string
+	DeletedAt       sql.NullString
+	IsPinned        bool
+	IsEncrypted     bool
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+}
+
+func (q *Queries) GetPrivateNoteByID(ctx context.Context, id int64) (GetPrivateNoteByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getPrivateNoteByID, id)
+	var i GetPrivateNoteByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.ImageData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IsPinned,
+		&i.IsEncrypted,
+		&i.EncryptionSalt,
+		&i.EncryptionNonce,
+	)
+	return i, err
+}
+
 const listArchivedNotes = `-- name: ListArchivedNotes :many
 SELECT id,
        title,

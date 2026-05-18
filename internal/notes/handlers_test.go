@@ -382,7 +382,7 @@ func TestUpdatePrivateNote(t *testing.T) {
 		t.Fatalf("UpdateNote(private) status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 
-	got, err := DecryptNoteByID(created.ID, "secret")
+	got, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}
@@ -413,7 +413,7 @@ func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("UpdateNote(private) status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
-	got, err := DecryptNoteByID(created.ID, "secret")
+	got, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}

@@ -161,7 +161,7 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 		}))
 	}
 
-	note, err := DecryptNoteByID(noteID, password)
+	note, err := DecryptNoteByID(ctx, noteID, password)
 	if err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
@@ -307,7 +307,7 @@ func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
 		}))
 	}
 
-	note, err := DecryptNoteByID(noteID, password)
+	note, err := DecryptNoteByID(ctx, noteID, password)
 	if err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})

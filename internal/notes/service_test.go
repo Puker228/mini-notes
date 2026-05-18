@@ -304,7 +304,7 @@ func TestUpdatePrivateNoteByID(t *testing.T) {
 		t.Fatalf("UpdatePrivateNoteByID() = %+v", updated)
 	}
 
-	decrypted, err := DecryptNoteByID(created.ID, "secret")
+	decrypted, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}
@@ -332,10 +332,10 @@ func TestUpdatePrivateNoteByIDCanChangePassword(t *testing.T) {
 	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "secret", "new-secret"); err != nil {
 		t.Fatalf("UpdatePrivateNoteByID() error = %v", err)
 	}
-	if _, err := DecryptNoteByID(created.ID, "secret"); !errors.Is(err, ErrInvalidPassword) {
+	if _, err := DecryptNoteByID(context.Background(), created.ID, "secret"); !errors.Is(err, ErrInvalidPassword) {
 		t.Fatalf("DecryptNoteByID(old password) error = %v, want %v", err, ErrInvalidPassword)
 	}
-	decrypted, err := DecryptNoteByID(created.ID, "new-secret")
+	decrypted, err := DecryptNoteByID(context.Background(), created.ID, "new-secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID(new password) error = %v", err)
 	}
@@ -355,7 +355,7 @@ func TestUpdatePrivateNoteByIDRejectsWrongPassword(t *testing.T) {
 	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "wrong", ""); !errors.Is(err, ErrInvalidPassword) {
 		t.Fatalf("UpdatePrivateNoteByID() error = %v, want %v", err, ErrInvalidPassword)
 	}
-	decrypted, err := DecryptNoteByID(created.ID, "secret")
+	decrypted, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}
