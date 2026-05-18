@@ -69,3 +69,12 @@ UPDATE notes
 SET title = ?, content = ?, image_data = ?, updated_at = ?
 WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 
+-- name: UpdatePrivateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: GetEncryptDataByID :one
+SELECT content, encryption_salt, encryption_nonce, is_encrypted
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');

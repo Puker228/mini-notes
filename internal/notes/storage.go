@@ -492,24 +492,21 @@ func updateNoteByID(ctx context.Context, ID int64, title, content, imageData str
 }
 
 func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
-	var ciphertext, salt, nonce []byte
-	var isEncrypted bool
-
-	row := db.QueryRow(`
-		SELECT content, encryption_salt, encryption_nonce, is_encrypted
-		FROM notes
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
-	if err := row.Scan(&ciphertext, &salt, &nonce, &isEncrypted); err != nil {
+	encryptedData, err := queries.GetEncryptDataByID(ctx, ID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Note{}, ErrNoteNotFound
 		}
 		return Note{}, err
 	}
-	if !isEncrypted {
+	if !encryptedData.IsEncrypted {
 		return Note{}, ErrNoteNotEncrypted
 	}
-	if _, err := NewPasswordEncryptor(currentPassword).Decrypt(salt, nonce, ciphertext); err != nil {
+	if _, err := NewPasswordEncryptor(currentPassword).Decrypt(
+		encryptedData.EncryptionSalt,
+		encryptedData.EncryptionNonce,
+		[]byte(encryptedData.Content),
+	); err != nil {
 		return Note{}, ErrInvalidPassword
 	}
 
@@ -524,15 +521,15 @@ func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageD
 	}
 
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		UPDATE notes
-		SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, title, newCiphertext, imageData, now, newSalt, newNonce, ID)
-	if err != nil {
-		return Note{}, err
-	}
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := queries.UpdatePrivateNoteByID(ctx, notesdb.UpdatePrivateNoteByIDParams{
+		Title:           title,
+		Content:         string(newCiphertext),
+		ImageData:       imageData,
+		UpdatedAt:       now,
+		EncryptionSalt:  newSalt,
+		EncryptionNonce: newNonce,
+		ID:              ID,
+	})
 	if err != nil {
 		return Note{}, err
 	}

@@ -70,6 +70,31 @@ func (q *Queries) CreatePrivateNote(ctx context.Context, arg CreatePrivateNotePa
 	return id, err
 }
 
+const getEncryptDataByID = `-- name: GetEncryptDataByID :one
+SELECT content, encryption_salt, encryption_nonce, is_encrypted
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type GetEncryptDataByIDRow struct {
+	Content         string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	IsEncrypted     bool
+}
+
+func (q *Queries) GetEncryptDataByID(ctx context.Context, id int64) (GetEncryptDataByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getEncryptDataByID, id)
+	var i GetEncryptDataByIDRow
+	err := row.Scan(
+		&i.Content,
+		&i.EncryptionSalt,
+		&i.EncryptionNonce,
+		&i.IsEncrypted,
+	)
+	return i, err
+}
+
 const getNoteByID = `-- name: GetNoteByID :one
 SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 FROM notes
@@ -345,6 +370,38 @@ func (q *Queries) UpdateNoteByID(ctx context.Context, arg UpdateNoteByIDParams) 
 		arg.Content,
 		arg.ImageData,
 		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updatePrivateNoteByID = `-- name: UpdatePrivateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type UpdatePrivateNoteByIDParams struct {
+	Title           string
+	Content         string
+	ImageData       string
+	UpdatedAt       string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	ID              int64
+}
+
+func (q *Queries) UpdatePrivateNoteByID(ctx context.Context, arg UpdatePrivateNoteByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updatePrivateNoteByID,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.UpdatedAt,
+		arg.EncryptionSalt,
+		arg.EncryptionNonce,
 		arg.ID,
 	)
 	if err != nil {
