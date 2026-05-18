@@ -10,6 +10,32 @@ import (
 	"database/sql"
 )
 
+const addTag = `-- name: AddTag :exec
+INSERT OR IGNORE INTO tags (name)
+VALUES (?)
+RETURNING id, name
+`
+
+func (q *Queries) AddTag(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, addTag, name)
+	return err
+}
+
+const addTagNote = `-- name: AddTagNote :exec
+INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+VALUES (?, ?)
+`
+
+type AddTagNoteParams struct {
+	NoteID int64
+	TagID  int64
+}
+
+func (q *Queries) AddTagNote(ctx context.Context, arg AddTagNoteParams) error {
+	_, err := q.db.ExecContext(ctx, addTagNote, arg.NoteID, arg.TagID)
+	return err
+}
+
 const createNote = `-- name: CreateNote :one
 INSERT INTO notes (title, content, image_data, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?)
@@ -167,6 +193,19 @@ func (q *Queries) GetPrivateNoteByID(ctx context.Context, id int64) (GetPrivateN
 		&i.EncryptionNonce,
 	)
 	return i, err
+}
+
+const getTagIDByName = `-- name: GetTagIDByName :one
+SELECT id
+FROM tags
+WHERE name = ?
+`
+
+func (q *Queries) GetTagIDByName(ctx context.Context, name string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTagIDByName, name)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const listArchivedNotes = `-- name: ListArchivedNotes :many

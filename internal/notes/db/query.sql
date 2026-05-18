@@ -78,3 +78,18 @@ WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 SELECT content, encryption_salt, encryption_nonce, is_encrypted
 FROM notes
 WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: GetTagIDByName :one
+SELECT id
+FROM tags
+WHERE name = ?;
+
+-- name: AddTag :exec
+INSERT OR IGNORE INTO tags (name)
+VALUES (?)
+RETURNING *;
+
+-- name: AddTagNote :exec
+INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+VALUES (?, ?);
+

@@ -49,19 +49,6 @@ func InitDB(path string) error {
 		return err
 	}
 
-	for _, migration := range []string{
-		`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
-		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
-		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
-		`ALTER TABLE notes ADD COLUMN is_pinned BOOL DEFAULT 0;`,
-		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
-	} {
-		_, _ = database.Exec(migration)
-	}
-
 	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
 		_ = database.Close()
 		return err
@@ -302,29 +289,21 @@ func parseTags(tags string) []string {
 	return cleanTags
 }
 
-func addTags(cleanTags []string, noteID int64) error {
+func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
 	for _, tag := range cleanTags {
-		if _, err := db.Exec(`
-			INSERT OR IGNORE INTO tags (name)
-			VALUES (?);
-		`, tag); err != nil {
+		if err := queries.AddTag(ctx, tag); err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		var id int64
-		err := db.QueryRow(`
-			SELECT id
-			FROM tags
-			WHERE name = ?;
-		`, tag).Scan(&id)
+		tagID, err := queries.GetTagIDByName(ctx, tag)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		_, err = db.Exec(`
-			INSERT OR IGNORE INTO note_tag (note_id, tag_id)
-			VALUES (?, ?);
-		`, noteID, id)
+		err = queries.AddTagNote(ctx, notesdb.AddTagNoteParams{
+			NoteID: noteID,
+			TagID:  tagID,
+		})
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
@@ -347,7 +326,7 @@ func addNote(ctx context.Context, title, content, imageData, tags string) (Note,
 	}
 
 	cleanTags := parseTags(tags)
-	if err := addTags(cleanTags, createdNoteID); err != nil {
+	if err := addTags(ctx, cleanTags, createdNoteID); err != nil {
 		return Note{}, err
 	}
 
