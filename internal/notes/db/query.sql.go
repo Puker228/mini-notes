@@ -298,3 +298,17 @@ func (q *Queries) SoftDeleteNoteByID(ctx context.Context, arg SoftDeleteNoteByID
 	}
 	return result.RowsAffected()
 }
+
+const togglePinNoteByID = `-- name: TogglePinNoteByID :execrows
+UPDATE notes
+SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+func (q *Queries) TogglePinNoteByID(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, togglePinNoteByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

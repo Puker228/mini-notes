@@ -548,16 +548,7 @@ func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 }
 
 func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
-	result, err := db.Exec(`
-		UPDATE notes
-		SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
-	if err != nil {
-		return Note{}, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := queries.TogglePinNoteByID(ctx, ID)
 	if err != nil {
 		return Note{}, err
 	}

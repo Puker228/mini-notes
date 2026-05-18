@@ -55,3 +55,9 @@ WHERE id = sqlc.arg(id) AND (deleted_at IS NULL OR deleted_at = '');
 
 -- name: RestoreNoteByID :execrows
 UPDATE notes SET deleted_at = NULL WHERE id = ?;
+
+-- name: TogglePinNoteByID :execrows
+UPDATE notes
+SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
