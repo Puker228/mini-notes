@@ -39,6 +39,16 @@ INSERT INTO notes (title, content, image_data, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?)
 RETURNING ID;
 
+-- name: GetPrivateNoteByID :one
+SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted, encryption_salt, encryption_nonce
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: CreatePrivateNote :one
+INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING ID;
+
 -- name: SoftDeleteNoteByID :execrows
 UPDATE notes SET deleted_at = sqlc.arg(deleted_at)
 WHERE id = sqlc.arg(id) AND (deleted_at IS NULL OR deleted_at = '');

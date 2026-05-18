@@ -161,7 +161,7 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 		}))
 	}
 
-	note, err := DecryptNoteByID(noteID, password)
+	note, err := DecryptNoteByID(ctx, noteID, password)
 	if err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
@@ -307,7 +307,7 @@ func (h *Handler) UnlockPrivateEditForm(c *echo.Context) error {
 		}))
 	}
 
-	note, err := DecryptNoteByID(noteID, password)
+	note, err := DecryptNoteByID(ctx, noteID, password)
 	if err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
@@ -395,6 +395,8 @@ func (h *Handler) CreateNote(c *echo.Context) error {
 }
 
 func (h *Handler) CreatePrivateNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	title := c.FormValue("title")
 	content := c.FormValue("content")
 	password := c.FormValue("password")
@@ -406,7 +408,7 @@ func (h *Handler) CreatePrivateNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "password required"})
 	}
 
-	note, err := AddPrivateNote(title, content, h.saveUploadedImage(c), password)
+	note, err := AddPrivateNote(ctx, title, content, h.saveUploadedImage(c), password)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to create note"})
 	}

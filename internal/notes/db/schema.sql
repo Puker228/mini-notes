@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS notes
 	created_at       TEXT NOT NULL DEFAULT '',
 	updated_at       TEXT NOT NULL DEFAULT '',
 	deleted_at       TEXT,
-	encryption_salt  TEXT,
-	encryption_nonce TEXT,
+	encryption_salt  BLOB,
+	encryption_nonce BLOB,
 	is_pinned        BOOL NOT NULL DEFAULT 0,
 	is_encrypted     BOOL NOT NULL DEFAULT 0
 );

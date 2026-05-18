@@ -16,8 +16,8 @@ type Note struct {
 	CreatedAt       string
 	UpdatedAt       string
 	DeletedAt       sql.NullString
-	EncryptionSalt  sql.NullString
-	EncryptionNonce sql.NullString
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
 	IsPinned        bool
 	IsEncrypted     bool
 }

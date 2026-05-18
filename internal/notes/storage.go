@@ -363,7 +363,7 @@ func addNote(ctx context.Context, title, content, imageData, tags string) (Note,
 	}, nil
 }
 
-func addPrivateNote(title, content, imageData, password string) (Note, error) {
+func addPrivateNote(ctx context.Context, title, content, imageData, password string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
 
 	encryptor := NewPasswordEncryptor(password)
@@ -374,22 +374,23 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 		return Note{}, err
 	}
 
-	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-	`, title, cipherText, imageData, now, now, salt, nonce, true)
-	if err != nil {
-		return Note{}, err
-	}
-
-	id, err := result.LastInsertId()
+	createdNoteID, err := queries.CreatePrivateNote(ctx, notesdb.CreatePrivateNoteParams{
+		Title:           title,
+		Content:         string(cipherText),
+		ImageData:       imageData,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+		EncryptionSalt:  salt,
+		EncryptionNonce: nonce,
+		IsEncrypted:     true,
+	})
 	if err != nil {
 		return Note{}, err
 	}
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
-		ID:        id,
+		ID:        createdNoteID,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,
@@ -430,37 +431,39 @@ func getNoteByID(ctx context.Context, ID int64) (Note, error) {
 	return note, err
 }
 
-func decryptNoteByID(ID int64, password string) (Note, error) {
-	var note Note
-	var createdAt, updatedAt string
-	var deletedAt sql.NullString
-	var ciphertext, salt, nonce []byte
-
-	row := db.QueryRow(`
-		SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted, encryption_salt, encryption_nonce
-		FROM notes
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
-	if err := row.Scan(&note.ID, &note.Title, &ciphertext, &note.ImageData, &createdAt, &updatedAt, &deletedAt, &note.IsPinned, &note.IsEncrypted, &salt, &nonce); err != nil {
+func decryptNoteByID(ctx context.Context, ID int64, password string) (Note, error) {
+	noteRow, err := queries.GetPrivateNoteByID(ctx, ID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Note{}, ErrNoteNotFound
 		}
 		return Note{}, err
 	}
 
-	note.CreatedAt, _ = time.Parse(timeLayout, createdAt)
-	note.UpdatedAt, _ = time.Parse(timeLayout, updatedAt)
-	if deletedAt.Valid && deletedAt.String != "" {
-		t, _ := time.Parse(timeLayout, deletedAt.String)
-		note.DeletedAt = &t
+	note := Note{
+		ID:          noteRow.ID,
+		Title:       noteRow.Title,
+		ImageData:   noteRow.ImageData,
+		IsPinned:    noteRow.IsPinned,
+		IsEncrypted: noteRow.IsEncrypted,
+	}
+	note.CreatedAt, _ = time.Parse(timeLayout, noteRow.CreatedAt)
+	note.UpdatedAt, _ = time.Parse(timeLayout, noteRow.UpdatedAt)
+	if noteRow.DeletedAt.Valid && noteRow.DeletedAt.String != "" {
+		deletedAt, _ := time.Parse(timeLayout, noteRow.DeletedAt.String)
+		note.DeletedAt = &deletedAt
 	}
 
 	if !note.IsEncrypted {
-		note.Content = string(ciphertext)
+		note.Content = noteRow.Content
 		return note, nil
 	}
 
-	plaintext, err := NewPasswordEncryptor(password).Decrypt(salt, nonce, ciphertext)
+	plaintext, err := NewPasswordEncryptor(password).Decrypt(
+		noteRow.EncryptionSalt,
+		noteRow.EncryptionNonce,
+		[]byte(noteRow.Content),
+	)
 	if err != nil {
 		return Note{}, ErrInvalidPassword
 	}

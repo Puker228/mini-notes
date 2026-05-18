@@ -217,7 +217,7 @@ func TestCreatePrivateNoteNeedsPassword(t *testing.T) {
 func TestDecryptPrivateNote(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private title", "private content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -240,7 +240,7 @@ func TestDecryptPrivateNote(t *testing.T) {
 func TestDecryptPrivateNoteWrongPassword(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private title", "private content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -266,7 +266,7 @@ func TestDecryptPrivateNoteWrongPassword(t *testing.T) {
 func TestUnlockPrivateEditForm(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private title", "private content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -292,7 +292,7 @@ func TestUnlockPrivateEditForm(t *testing.T) {
 func TestUnlockPrivateEditFormWrongPassword(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("private title", "private content", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private title", "private content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -362,7 +362,7 @@ func TestCreateNoteNeedsTitle(t *testing.T) {
 func TestUpdatePrivateNote(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("old private", "old content", "old-image", "secret")
+	created, err := AddPrivateNote(context.Background(), "old private", "old content", "old-image", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -382,7 +382,7 @@ func TestUpdatePrivateNote(t *testing.T) {
 		t.Fatalf("UpdateNote(private) status = %d, want %d", rec.Code, http.StatusSeeOther)
 	}
 
-	got, err := DecryptNoteByID(created.ID, "secret")
+	got, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}
@@ -394,7 +394,7 @@ func TestUpdatePrivateNote(t *testing.T) {
 func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 	router := setupHandlerRouter(t)
 
-	created, err := AddPrivateNote("old private", "old content", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "old private", "old content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -413,7 +413,7 @@ func TestUpdatePrivateNoteWrongPassword(t *testing.T) {
 	if rec.Code != http.StatusUnauthorized {
 		t.Fatalf("UpdateNote(private) status = %d, want %d", rec.Code, http.StatusUnauthorized)
 	}
-	got, err := DecryptNoteByID(created.ID, "secret")
+	got, err := DecryptNoteByID(context.Background(), created.ID, "secret")
 	if err != nil {
 		t.Fatalf("DecryptNoteByID() error = %v", err)
 	}

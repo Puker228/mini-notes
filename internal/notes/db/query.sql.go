@@ -37,6 +37,39 @@ func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (int64, 
 	return id, err
 }
 
+const createPrivateNote = `-- name: CreatePrivateNote :one
+INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING ID
+`
+
+type CreatePrivateNoteParams struct {
+	Title           string
+	Content         string
+	ImageData       string
+	CreatedAt       string
+	UpdatedAt       string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	IsEncrypted     bool
+}
+
+func (q *Queries) CreatePrivateNote(ctx context.Context, arg CreatePrivateNoteParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createPrivateNote,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.EncryptionSalt,
+		arg.EncryptionNonce,
+		arg.IsEncrypted,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getNoteByID = `-- name: GetNoteByID :one
 SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 FROM notes
@@ -68,6 +101,45 @@ func (q *Queries) GetNoteByID(ctx context.Context, id int64) (GetNoteByIDRow, er
 		&i.DeletedAt,
 		&i.IsPinned,
 		&i.IsEncrypted,
+	)
+	return i, err
+}
+
+const getPrivateNoteByID = `-- name: GetPrivateNoteByID :one
+SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted, encryption_salt, encryption_nonce
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type GetPrivateNoteByIDRow struct {
+	ID              int64
+	Title           string
+	Content         string
+	ImageData       string
+	CreatedAt       string
+	UpdatedAt       string
+	DeletedAt       sql.NullString
+	IsPinned        bool
+	IsEncrypted     bool
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+}
+
+func (q *Queries) GetPrivateNoteByID(ctx context.Context, id int64) (GetPrivateNoteByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getPrivateNoteByID, id)
+	var i GetPrivateNoteByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.Title,
+		&i.Content,
+		&i.ImageData,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.IsPinned,
+		&i.IsEncrypted,
+		&i.EncryptionSalt,
+		&i.EncryptionNonce,
 	)
 	return i, err
 }
