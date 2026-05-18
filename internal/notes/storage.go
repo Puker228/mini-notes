@@ -363,7 +363,7 @@ func addNote(ctx context.Context, title, content, imageData, tags string) (Note,
 	}, nil
 }
 
-func addPrivateNote(title, content, imageData, password string) (Note, error) {
+func addPrivateNote(ctx context.Context, title, content, imageData, password string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
 
 	encryptor := NewPasswordEncryptor(password)
@@ -374,22 +374,23 @@ func addPrivateNote(title, content, imageData, password string) (Note, error) {
 		return Note{}, err
 	}
 
-	result, err := db.Exec(`
-		INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?);
-	`, title, cipherText, imageData, now, now, salt, nonce, true)
-	if err != nil {
-		return Note{}, err
-	}
-
-	id, err := result.LastInsertId()
+	createdNoteID, err := queries.CreatePrivateNote(ctx, notesdb.CreatePrivateNoteParams{
+		Title:           title,
+		Content:         string(cipherText),
+		ImageData:       imageData,
+		CreatedAt:       now,
+		UpdatedAt:       now,
+		EncryptionSalt:  salt,
+		EncryptionNonce: nonce,
+		IsEncrypted:     true,
+	})
 	if err != nil {
 		return Note{}, err
 	}
 
 	t, _ := time.Parse(timeLayout, now)
 	return Note{
-		ID:        id,
+		ID:        createdNoteID,
 		Title:     title,
 		Content:   content,
 		ImageData: imageData,

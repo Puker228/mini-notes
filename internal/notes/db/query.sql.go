@@ -37,6 +37,39 @@ func (q *Queries) CreateNote(ctx context.Context, arg CreateNoteParams) (int64, 
 	return id, err
 }
 
+const createPrivateNote = `-- name: CreatePrivateNote :one
+INSERT INTO notes (title, content, image_data, created_at, updated_at, encryption_salt, encryption_nonce, is_encrypted)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+RETURNING ID
+`
+
+type CreatePrivateNoteParams struct {
+	Title           string
+	Content         string
+	ImageData       string
+	CreatedAt       string
+	UpdatedAt       string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	IsEncrypted     bool
+}
+
+func (q *Queries) CreatePrivateNote(ctx context.Context, arg CreatePrivateNoteParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, createPrivateNote,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.CreatedAt,
+		arg.UpdatedAt,
+		arg.EncryptionSalt,
+		arg.EncryptionNonce,
+		arg.IsEncrypted,
+	)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
+}
+
 const getNoteByID = `-- name: GetNoteByID :one
 SELECT id, title, content, image_data, created_at, updated_at, deleted_at, is_pinned, is_encrypted
 FROM notes

@@ -27,8 +27,8 @@ func AddNote(ctx context.Context, title, content, imageData, tags string) (Note,
 	return addNote(ctx, title, content, imageData, tags)
 }
 
-func AddPrivateNote(title, content, imageData, password string) (Note, error) {
-	return addPrivateNote(title, content, imageData, password)
+func AddPrivateNote(ctx context.Context, title, content, imageData, password string) (Note, error) {
+	return addPrivateNote(ctx, title, content, imageData, password)
 }
 
 func DecryptNoteByID(ID int64, password string) (Note, error) {

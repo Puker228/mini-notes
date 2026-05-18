@@ -177,7 +177,7 @@ func TestListNotesEncryptedOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddNote() error = %v", err)
 	}
-	private, err := AddPrivateNote("Private", "encrypted content", "", "secret")
+	private, err := AddPrivateNote(context.Background(), "Private", "encrypted content", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -291,7 +291,7 @@ func TestListNotesFiltersByTag(t *testing.T) {
 func TestUpdatePrivateNoteByID(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddPrivateNote("private", "old secret", "old-image", "secret")
+	created, err := AddPrivateNote(context.Background(), "private", "old secret", "old-image", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -324,7 +324,7 @@ func TestUpdatePrivateNoteByID(t *testing.T) {
 func TestUpdatePrivateNoteByIDCanChangePassword(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddPrivateNote("private", "old secret", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private", "old secret", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
@@ -347,7 +347,7 @@ func TestUpdatePrivateNoteByIDCanChangePassword(t *testing.T) {
 func TestUpdatePrivateNoteByIDRejectsWrongPassword(t *testing.T) {
 	setupTestDB(t)
 
-	created, err := AddPrivateNote("private", "old secret", "", "secret")
+	created, err := AddPrivateNote(context.Background(), "private", "old secret", "", "secret")
 	if err != nil {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
