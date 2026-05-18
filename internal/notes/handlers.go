@@ -186,12 +186,14 @@ func (h *Handler) DecryptNote(c *echo.Context) error {
 }
 
 func (h *Handler) DeleteNote(c *echo.Context) error {
+	ctx := c.Request().Context()
+
 	noteID, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	if err := SoftDeleteNoteByID(noteID); err != nil {
+	if err := SoftDeleteNoteByID(ctx, noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}

@@ -51,8 +51,8 @@ func TogglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
 	return togglePinNoteByID(ctx, ID)
 }
 
-func SoftDeleteNoteByID(ID int64) error {
-	return softDeleteNoteByID(ID)
+func SoftDeleteNoteByID(ctx context.Context, ID int64) error {
+	return softDeleteNoteByID(ctx, ID)
 }
 
 func RestoreNoteByID(ID int64) error {
