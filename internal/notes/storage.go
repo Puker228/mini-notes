@@ -565,16 +565,12 @@ func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
 	return getNoteByID(ctx, ID)
 }
 
-func softDeleteNoteByID(ID int64) error {
+func softDeleteNoteByID(ctx context.Context, ID int64) error {
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		UPDATE notes SET deleted_at = ?
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, now, ID)
-	if err != nil {
-		return err
-	}
-	rows, err := result.RowsAffected()
+	rows, err := queries.SoftDeleteNoteByID(ctx, notesdb.SoftDeleteNoteByIDParams{
+		DeletedAt: sql.NullString{String: now, Valid: true},
+		ID:        ID,
+	})
 	if err != nil {
 		return err
 	}
@@ -584,12 +580,8 @@ func softDeleteNoteByID(ID int64) error {
 	return nil
 }
 
-func restoreNoteByID(ID int64) error {
-	result, err := db.Exec(`UPDATE notes SET deleted_at = NULL WHERE id = ?;`, ID)
-	if err != nil {
-		return err
-	}
-	rows, err := result.RowsAffected()
+func restoreNoteByID(ctx context.Context, ID int64) error {
+	rows, err := queries.RestoreNoteByID(ctx, ID)
 	if err != nil {
 		return err
 	}

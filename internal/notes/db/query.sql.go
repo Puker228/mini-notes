@@ -196,3 +196,33 @@ func (q *Queries) ListTagsByNoteID(ctx context.Context, noteID int64) ([]string,
 	}
 	return items, nil
 }
+
+const restoreNoteByID = `-- name: RestoreNoteByID :execrows
+UPDATE notes SET deleted_at = NULL WHERE id = ?
+`
+
+func (q *Queries) RestoreNoteByID(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, restoreNoteByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const softDeleteNoteByID = `-- name: SoftDeleteNoteByID :execrows
+UPDATE notes SET deleted_at = ?1
+WHERE id = ?2 AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type SoftDeleteNoteByIDParams struct {
+	DeletedAt sql.NullString
+	ID        int64
+}
+
+func (q *Queries) SoftDeleteNoteByID(ctx context.Context, arg SoftDeleteNoteByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, softDeleteNoteByID, arg.DeletedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}

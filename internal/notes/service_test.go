@@ -109,7 +109,7 @@ func TestListNotesFilters(t *testing.T) {
 		t.Fatalf("AddNote(gamma) error = %v", err)
 	}
 
-	if err := SoftDeleteNoteByID(beta.ID); err != nil {
+	if err := SoftDeleteNoteByID(context.Background(), beta.ID); err != nil {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
@@ -255,7 +255,7 @@ func TestListNotesFiltersByTag(t *testing.T) {
 	if err != nil {
 		t.Fatalf("AddNote(archived) error = %v", err)
 	}
-	if err := SoftDeleteNoteByID(archived.ID); err != nil {
+	if err := SoftDeleteNoteByID(context.Background(), archived.ID); err != nil {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
@@ -415,7 +415,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("AddNote() error = %v", err)
 	}
 
-	if err := SoftDeleteNoteByID(created.ID); err != nil {
+	if err := SoftDeleteNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("SoftDeleteNoteByID() error = %v", err)
 	}
 
@@ -435,7 +435,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("ListArchivedNotes() did not populate DeletedAt: %+v", archived[0])
 	}
 
-	if err := RestoreNoteByID(created.ID); err != nil {
+	if err := RestoreNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("RestoreNoteByID() error = %v", err)
 	}
 
@@ -496,8 +496,8 @@ func TestStorageNotFound(t *testing.T) {
 			_, err := TogglePinNoteByID(context.Background(), 404)
 			return err
 		}},
-		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(404) }},
-		{name: "restore", fn: func() error { return RestoreNoteByID(404) }},
+		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(context.Background(), 404) }},
+		{name: "restore", fn: func() error { return RestoreNoteByID(context.Background(), 404) }},
 		{name: "permanent delete", fn: func() error { return PermanentDeleteNoteByID(404) }},
 	}
 
