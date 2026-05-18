@@ -1,4 +1,4 @@
-.PHONY: build run run-bin start release test fmt build-all clean-apps clean-all docker-build docker-run docker-up docker-down docker-logs
+.PHONY: build run run-bin start release test fmt build-all clean-apps clean-all docker-build docker-run docker-up docker-down docker-logs docker-gen-sqlc gen-sqlc
 
 APP := mini-notes
 CMD := ./cmd/app
@@ -36,6 +36,9 @@ clean-all: clean-apps
 	rm -rf uploads/
 	rm -f notes.db*
 
+gen-sqlc:
+	sqlc generate
+
 docker-build:
 	docker build -t $(DOCKER_IMAGE) .
 
@@ -50,6 +53,9 @@ docker-down:
 
 docker-logs:
 	$(DOCKER_COMPOSE) logs -f mini-notes
+
+docker-gen-sqlc:
+	docker run --rm -v $(PWD):/src -w /src sqlc/sqlc generate
 
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
