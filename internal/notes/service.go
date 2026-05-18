@@ -39,12 +39,12 @@ func GetNoteByID(ctx context.Context, ID int64) (Note, error) {
 	return getNoteByID(ctx, ID)
 }
 
-func UpdateNoteByID(ID int64, title, content, imageData string) (Note, error) {
-	return updateNoteByID(ID, title, content, imageData)
+func UpdateNoteByID(ctx context.Context, ID int64, title, content, imageData string) (Note, error) {
+	return updateNoteByID(ctx, ID, title, content, imageData)
 }
 
-func UpdatePrivateNoteByID(ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
-	return updatePrivateNoteByID(ID, title, content, imageData, currentPassword, newPassword)
+func UpdatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
+	return updatePrivateNoteByID(ctx, ID, title, content, imageData, currentPassword, newPassword)
 }
 
 func TogglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
@@ -59,6 +59,6 @@ func RestoreNoteByID(ctx context.Context, ID int64) error {
 	return restoreNoteByID(ctx, ID)
 }
 
-func PermanentDeleteNoteByID(ID int64) error {
-	return permanentDeleteNoteByID(ID)
+func PermanentDeleteNoteByID(ctx context.Context, ID int64) error {
+	return permanentDeleteNoteByID(ctx, ID)
 }

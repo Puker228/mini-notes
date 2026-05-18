@@ -55,3 +55,41 @@ WHERE id = sqlc.arg(id) AND (deleted_at IS NULL OR deleted_at = '');
 
 -- name: RestoreNoteByID :execrows
 UPDATE notes SET deleted_at = NULL WHERE id = ?;
+
+-- name: TogglePinNoteByID :execrows
+UPDATE notes
+SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: PermanentDeleteNoteByID :execrows
+DELETE FROM notes WHERE id = ?;
+
+-- name: UpdateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: UpdatePrivateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: GetEncryptDataByID :one
+SELECT content, encryption_salt, encryption_nonce, is_encrypted
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
+
+-- name: GetTagIDByName :one
+SELECT id
+FROM tags
+WHERE name = ?;
+
+-- name: AddTag :exec
+INSERT OR IGNORE INTO tags (name)
+VALUES (?)
+RETURNING *;
+
+-- name: AddTagNote :exec
+INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+VALUES (?, ?);
+

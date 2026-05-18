@@ -41,7 +41,7 @@ func TestStorageCRUD(t *testing.T) {
 		t.Fatalf("GetNoteByID() = %+v", got)
 	}
 
-	updated, err := UpdateNoteByID(created.ID, "updated", "new content", "")
+	updated, err := UpdateNoteByID(context.Background(), created.ID, "updated", "new content", "")
 	if err != nil {
 		t.Fatalf("UpdateNoteByID() error = %v", err)
 	}
@@ -296,7 +296,7 @@ func TestUpdatePrivateNoteByID(t *testing.T) {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
 
-	updated, err := UpdatePrivateNoteByID(created.ID, "updated private", "new secret", "new-image", "secret", "")
+	updated, err := UpdatePrivateNoteByID(context.Background(), created.ID, "updated private", "new secret", "new-image", "secret", "")
 	if err != nil {
 		t.Fatalf("UpdatePrivateNoteByID() error = %v", err)
 	}
@@ -329,7 +329,7 @@ func TestUpdatePrivateNoteByIDCanChangePassword(t *testing.T) {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
 
-	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "secret", "new-secret"); err != nil {
+	if _, err := UpdatePrivateNoteByID(context.Background(), created.ID, "private", "new secret", "", "secret", "new-secret"); err != nil {
 		t.Fatalf("UpdatePrivateNoteByID() error = %v", err)
 	}
 	if _, err := DecryptNoteByID(context.Background(), created.ID, "secret"); !errors.Is(err, ErrInvalidPassword) {
@@ -352,7 +352,7 @@ func TestUpdatePrivateNoteByIDRejectsWrongPassword(t *testing.T) {
 		t.Fatalf("AddPrivateNote() error = %v", err)
 	}
 
-	if _, err := UpdatePrivateNoteByID(created.ID, "private", "new secret", "", "wrong", ""); !errors.Is(err, ErrInvalidPassword) {
+	if _, err := UpdatePrivateNoteByID(context.Background(), created.ID, "private", "new secret", "", "wrong", ""); !errors.Is(err, ErrInvalidPassword) {
 		t.Fatalf("UpdatePrivateNoteByID() error = %v, want %v", err, ErrInvalidPassword)
 	}
 	decrypted, err := DecryptNoteByID(context.Background(), created.ID, "secret")
@@ -443,7 +443,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("GetNoteByID() after restore error = %v", err)
 	}
 
-	if err := PermanentDeleteNoteByID(created.ID); err != nil {
+	if err := PermanentDeleteNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("PermanentDeleteNoteByID() error = %v", err)
 	}
 
@@ -461,7 +461,7 @@ func TestUpdateNoteFields(t *testing.T) {
 		t.Fatalf("AddNote() error = %v", err)
 	}
 
-	updated, err := UpdateNoteByID(created.ID, "updated", "new content", "new-image")
+	updated, err := UpdateNoteByID(context.Background(), created.ID, "updated", "new content", "new-image")
 	if err != nil {
 		t.Fatalf("UpdateNoteByID() error = %v", err)
 	}
@@ -489,7 +489,7 @@ func TestStorageNotFound(t *testing.T) {
 		fn   func() error
 	}{
 		{name: "update", fn: func() error {
-			_, err := UpdateNoteByID(404, "title", "content", "")
+			_, err := UpdateNoteByID(context.Background(), 404, "title", "content", "")
 			return err
 		}},
 		{name: "toggle pin", fn: func() error {
@@ -498,7 +498,7 @@ func TestStorageNotFound(t *testing.T) {
 		}},
 		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(context.Background(), 404) }},
 		{name: "restore", fn: func() error { return RestoreNoteByID(context.Background(), 404) }},
-		{name: "permanent delete", fn: func() error { return PermanentDeleteNoteByID(404) }},
+		{name: "permanent delete", fn: func() error { return PermanentDeleteNoteByID(context.Background(), 404) }},
 	}
 
 	for _, tt := range tests {

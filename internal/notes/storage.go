@@ -49,19 +49,6 @@ func InitDB(path string) error {
 		return err
 	}
 
-	for _, migration := range []string{
-		`ALTER TABLE notes ADD COLUMN image_data TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN created_at TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN updated_at TEXT NOT NULL DEFAULT '';`,
-		`ALTER TABLE notes ADD COLUMN deleted_at TEXT;`,
-		`ALTER TABLE notes ADD COLUMN encryption_salt TEXT;`,
-		`ALTER TABLE notes ADD COLUMN encryption_nonce TEXT;`,
-		`ALTER TABLE notes ADD COLUMN is_pinned BOOL DEFAULT 0;`,
-		`ALTER TABLE notes ADD COLUMN is_encrypted BOOL DEFAULT 0;`,
-	} {
-		_, _ = database.Exec(migration)
-	}
-
 	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
 		_ = database.Close()
 		return err
@@ -302,29 +289,21 @@ func parseTags(tags string) []string {
 	return cleanTags
 }
 
-func addTags(cleanTags []string, noteID int64) error {
+func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
 	for _, tag := range cleanTags {
-		if _, err := db.Exec(`
-			INSERT OR IGNORE INTO tags (name)
-			VALUES (?);
-		`, tag); err != nil {
+		if err := queries.AddTag(ctx, tag); err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		var id int64
-		err := db.QueryRow(`
-			SELECT id
-			FROM tags
-			WHERE name = ?;
-		`, tag).Scan(&id)
+		tagID, err := queries.GetTagIDByName(ctx, tag)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		_, err = db.Exec(`
-			INSERT OR IGNORE INTO note_tag (note_id, tag_id)
-			VALUES (?, ?);
-		`, noteID, id)
+		err = queries.AddTagNote(ctx, notesdb.AddTagNoteParams{
+			NoteID: noteID,
+			TagID:  tagID,
+		})
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
@@ -347,7 +326,7 @@ func addNote(ctx context.Context, title, content, imageData, tags string) (Note,
 	}
 
 	cleanTags := parseTags(tags)
-	if err := addTags(cleanTags, createdNoteID); err != nil {
+	if err := addTags(ctx, cleanTags, createdNoteID); err != nil {
 		return Note{}, err
 	}
 
@@ -471,18 +450,15 @@ func decryptNoteByID(ctx context.Context, ID int64, password string) (Note, erro
 	return note, nil
 }
 
-func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
+func updateNoteByID(ctx context.Context, ID int64, title, content, imageData string) (Note, error) {
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		UPDATE notes
-		SET title = ?, content = ?, image_data = ?, updated_at = ?
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, title, content, imageData, now, ID)
-	if err != nil {
-		return Note{}, err
-	}
-
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := queries.UpdateNoteByID(ctx, notesdb.UpdateNoteByIDParams{
+		Title:     title,
+		Content:   content,
+		ImageData: imageData,
+		UpdatedAt: now,
+		ID:        ID,
+	})
 	if err != nil {
 		return Note{}, err
 	}
@@ -494,25 +470,22 @@ func updateNoteByID(ID int64, title, content, imageData string) (Note, error) {
 	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t}, nil
 }
 
-func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
-	var ciphertext, salt, nonce []byte
-	var isEncrypted bool
-
-	row := db.QueryRow(`
-		SELECT content, encryption_salt, encryption_nonce, is_encrypted
-		FROM notes
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
-	if err := row.Scan(&ciphertext, &salt, &nonce, &isEncrypted); err != nil {
+func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
+	encryptedData, err := queries.GetEncryptDataByID(ctx, ID)
+	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return Note{}, ErrNoteNotFound
 		}
 		return Note{}, err
 	}
-	if !isEncrypted {
+	if !encryptedData.IsEncrypted {
 		return Note{}, ErrNoteNotEncrypted
 	}
-	if _, err := NewPasswordEncryptor(currentPassword).Decrypt(salt, nonce, ciphertext); err != nil {
+	if _, err := NewPasswordEncryptor(currentPassword).Decrypt(
+		encryptedData.EncryptionSalt,
+		encryptedData.EncryptionNonce,
+		[]byte(encryptedData.Content),
+	); err != nil {
 		return Note{}, ErrInvalidPassword
 	}
 
@@ -527,15 +500,15 @@ func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 	}
 
 	now := time.Now().UTC().Format(timeLayout)
-	result, err := db.Exec(`
-		UPDATE notes
-		SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, title, newCiphertext, imageData, now, newSalt, newNonce, ID)
-	if err != nil {
-		return Note{}, err
-	}
-	rowsAffected, err := result.RowsAffected()
+	rowsAffected, err := queries.UpdatePrivateNoteByID(ctx, notesdb.UpdatePrivateNoteByIDParams{
+		Title:           title,
+		Content:         string(newCiphertext),
+		ImageData:       imageData,
+		UpdatedAt:       now,
+		EncryptionSalt:  newSalt,
+		EncryptionNonce: newNonce,
+		ID:              ID,
+	})
 	if err != nil {
 		return Note{}, err
 	}
@@ -548,20 +521,11 @@ func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 }
 
 func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
-	result, err := db.Exec(`
-		UPDATE notes
-		SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
-		WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
-	`, ID)
+	rows, err := queries.TogglePinNoteByID(ctx, ID)
 	if err != nil {
 		return Note{}, err
 	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return Note{}, err
-	}
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return Note{}, ErrNoteNotFound
 	}
 
@@ -594,12 +558,8 @@ func restoreNoteByID(ctx context.Context, ID int64) error {
 	return nil
 }
 
-func permanentDeleteNoteByID(ID int64) error {
-	result, err := db.Exec(`DELETE FROM notes WHERE id = ?;`, ID)
-	if err != nil {
-		return err
-	}
-	rows, err := result.RowsAffected()
+func permanentDeleteNoteByID(ctx context.Context, ID int64) error {
+	rows, err := queries.PermanentDeleteNoteByID(ctx, ID)
 	if err != nil {
 		return err
 	}

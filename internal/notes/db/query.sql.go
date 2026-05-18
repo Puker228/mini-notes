@@ -10,6 +10,32 @@ import (
 	"database/sql"
 )
 
+const addTag = `-- name: AddTag :exec
+INSERT OR IGNORE INTO tags (name)
+VALUES (?)
+RETURNING id, name
+`
+
+func (q *Queries) AddTag(ctx context.Context, name string) error {
+	_, err := q.db.ExecContext(ctx, addTag, name)
+	return err
+}
+
+const addTagNote = `-- name: AddTagNote :exec
+INSERT OR IGNORE INTO note_tag (note_id, tag_id)
+VALUES (?, ?)
+`
+
+type AddTagNoteParams struct {
+	NoteID int64
+	TagID  int64
+}
+
+func (q *Queries) AddTagNote(ctx context.Context, arg AddTagNoteParams) error {
+	_, err := q.db.ExecContext(ctx, addTagNote, arg.NoteID, arg.TagID)
+	return err
+}
+
 const createNote = `-- name: CreateNote :one
 INSERT INTO notes (title, content, image_data, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?)
@@ -68,6 +94,31 @@ func (q *Queries) CreatePrivateNote(ctx context.Context, arg CreatePrivateNotePa
 	var id int64
 	err := row.Scan(&id)
 	return id, err
+}
+
+const getEncryptDataByID = `-- name: GetEncryptDataByID :one
+SELECT content, encryption_salt, encryption_nonce, is_encrypted
+FROM notes
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type GetEncryptDataByIDRow struct {
+	Content         string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	IsEncrypted     bool
+}
+
+func (q *Queries) GetEncryptDataByID(ctx context.Context, id int64) (GetEncryptDataByIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getEncryptDataByID, id)
+	var i GetEncryptDataByIDRow
+	err := row.Scan(
+		&i.Content,
+		&i.EncryptionSalt,
+		&i.EncryptionNonce,
+		&i.IsEncrypted,
+	)
+	return i, err
 }
 
 const getNoteByID = `-- name: GetNoteByID :one
@@ -142,6 +193,19 @@ func (q *Queries) GetPrivateNoteByID(ctx context.Context, id int64) (GetPrivateN
 		&i.EncryptionNonce,
 	)
 	return i, err
+}
+
+const getTagIDByName = `-- name: GetTagIDByName :one
+SELECT id
+FROM tags
+WHERE name = ?
+`
+
+func (q *Queries) GetTagIDByName(ctx context.Context, name string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getTagIDByName, name)
+	var id int64
+	err := row.Scan(&id)
+	return id, err
 }
 
 const listArchivedNotes = `-- name: ListArchivedNotes :many
@@ -269,6 +333,18 @@ func (q *Queries) ListTagsByNoteID(ctx context.Context, noteID int64) ([]string,
 	return items, nil
 }
 
+const permanentDeleteNoteByID = `-- name: PermanentDeleteNoteByID :execrows
+DELETE FROM notes WHERE id = ?
+`
+
+func (q *Queries) PermanentDeleteNoteByID(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, permanentDeleteNoteByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const restoreNoteByID = `-- name: RestoreNoteByID :execrows
 UPDATE notes SET deleted_at = NULL WHERE id = ?
 `
@@ -293,6 +369,80 @@ type SoftDeleteNoteByIDParams struct {
 
 func (q *Queries) SoftDeleteNoteByID(ctx context.Context, arg SoftDeleteNoteByIDParams) (int64, error) {
 	result, err := q.db.ExecContext(ctx, softDeleteNoteByID, arg.DeletedAt, arg.ID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const togglePinNoteByID = `-- name: TogglePinNoteByID :execrows
+UPDATE notes
+SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+func (q *Queries) TogglePinNoteByID(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, togglePinNoteByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updateNoteByID = `-- name: UpdateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type UpdateNoteByIDParams struct {
+	Title     string
+	Content   string
+	ImageData string
+	UpdatedAt string
+	ID        int64
+}
+
+func (q *Queries) UpdateNoteByID(ctx context.Context, arg UpdateNoteByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updateNoteByID,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.UpdatedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
+const updatePrivateNoteByID = `-- name: UpdatePrivateNoteByID :execrows
+UPDATE notes
+SET title = ?, content = ?, image_data = ?, updated_at = ?, encryption_salt = ?, encryption_nonce = ?, is_encrypted = 1
+WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '')
+`
+
+type UpdatePrivateNoteByIDParams struct {
+	Title           string
+	Content         string
+	ImageData       string
+	UpdatedAt       string
+	EncryptionSalt  []byte
+	EncryptionNonce []byte
+	ID              int64
+}
+
+func (q *Queries) UpdatePrivateNoteByID(ctx context.Context, arg UpdatePrivateNoteByIDParams) (int64, error) {
+	result, err := q.db.ExecContext(ctx, updatePrivateNoteByID,
+		arg.Title,
+		arg.Content,
+		arg.ImageData,
+		arg.UpdatedAt,
+		arg.EncryptionSalt,
+		arg.EncryptionNonce,
+		arg.ID,
+	)
 	if err != nil {
 		return 0, err
 	}
