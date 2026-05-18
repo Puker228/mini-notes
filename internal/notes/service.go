@@ -59,6 +59,6 @@ func RestoreNoteByID(ctx context.Context, ID int64) error {
 	return restoreNoteByID(ctx, ID)
 }
 
-func PermanentDeleteNoteByID(ID int64) error {
-	return permanentDeleteNoteByID(ID)
+func PermanentDeleteNoteByID(ctx context.Context, ID int64) error {
+	return permanentDeleteNoteByID(ctx, ID)
 }

@@ -443,7 +443,7 @@ func TestArchiveRestoreDelete(t *testing.T) {
 		t.Fatalf("GetNoteByID() after restore error = %v", err)
 	}
 
-	if err := PermanentDeleteNoteByID(created.ID); err != nil {
+	if err := PermanentDeleteNoteByID(context.Background(), created.ID); err != nil {
 		t.Fatalf("PermanentDeleteNoteByID() error = %v", err)
 	}
 
@@ -498,7 +498,7 @@ func TestStorageNotFound(t *testing.T) {
 		}},
 		{name: "soft delete", fn: func() error { return SoftDeleteNoteByID(context.Background(), 404) }},
 		{name: "restore", fn: func() error { return RestoreNoteByID(context.Background(), 404) }},
-		{name: "permanent delete", fn: func() error { return PermanentDeleteNoteByID(404) }},
+		{name: "permanent delete", fn: func() error { return PermanentDeleteNoteByID(context.Background(), 404) }},
 	}
 
 	for _, tt := range tests {

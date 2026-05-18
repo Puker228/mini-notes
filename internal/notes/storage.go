@@ -548,11 +548,11 @@ func updatePrivateNoteByID(ID int64, title, content, imageData, currentPassword,
 }
 
 func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
-	rowsAffected, err := queries.TogglePinNoteByID(ctx, ID)
+	rows, err := queries.TogglePinNoteByID(ctx, ID)
 	if err != nil {
 		return Note{}, err
 	}
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return Note{}, ErrNoteNotFound
 	}
 
@@ -585,12 +585,8 @@ func restoreNoteByID(ctx context.Context, ID int64) error {
 	return nil
 }
 
-func permanentDeleteNoteByID(ID int64) error {
-	result, err := db.Exec(`DELETE FROM notes WHERE id = ?;`, ID)
-	if err != nil {
-		return err
-	}
-	rows, err := result.RowsAffected()
+func permanentDeleteNoteByID(ctx context.Context, ID int64) error {
+	rows, err := queries.PermanentDeleteNoteByID(ctx, ID)
 	if err != nil {
 		return err
 	}

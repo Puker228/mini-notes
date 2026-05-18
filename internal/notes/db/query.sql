@@ -61,3 +61,5 @@ UPDATE notes
 SET is_pinned = CASE WHEN is_pinned = 1 THEN 0 ELSE 1 END
 WHERE id = ? AND (deleted_at IS NULL OR deleted_at = '');
 
+-- name: PermanentDeleteNoteByID :execrows
+DELETE FROM notes WHERE id = ?;

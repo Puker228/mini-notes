@@ -269,6 +269,18 @@ func (q *Queries) ListTagsByNoteID(ctx context.Context, noteID int64) ([]string,
 	return items, nil
 }
 
+const permanentDeleteNoteByID = `-- name: PermanentDeleteNoteByID :execrows
+DELETE FROM notes WHERE id = ?
+`
+
+func (q *Queries) PermanentDeleteNoteByID(ctx context.Context, id int64) (int64, error) {
+	result, err := q.db.ExecContext(ctx, permanentDeleteNoteByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected()
+}
+
 const restoreNoteByID = `-- name: RestoreNoteByID :execrows
 UPDATE notes SET deleted_at = NULL WHERE id = ?
 `

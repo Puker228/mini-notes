@@ -249,7 +249,7 @@ func (h *Handler) PermanentDeleteNote(c *echo.Context) error {
 
 	existing, _ := GetNoteByID(ctx, noteID)
 
-	if err := PermanentDeleteNoteByID(noteID); err != nil {
+	if err := PermanentDeleteNoteByID(ctx, noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
 			return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})
 		}
