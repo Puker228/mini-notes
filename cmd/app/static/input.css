@@ -1,3 +1,130 @@
 @import "tailwindcss";
 
 @source "../templates/**/*.html";
+
+@theme {
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    --color-brand-50: oklch(0.97 0.02 295);
+    --color-brand-300: oklch(0.78 0.16 295);
+    --color-brand-400: oklch(0.70 0.20 295);
+    --color-brand-500: oklch(0.62 0.24 295);
+    --color-brand-600: oklch(0.55 0.24 295);
+    --color-brand-700: oklch(0.48 0.22 295);
+}
+
+@layer base {
+    html {
+        font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+        background-color: #07060c;
+        background-image:
+            radial-gradient(ellipse 80% 60% at 50% -10%, rgba(139, 92, 246, 0.18), transparent 70%),
+            radial-gradient(ellipse 60% 50% at 100% 10%, rgba(56, 189, 248, 0.10), transparent 60%),
+            radial-gradient(ellipse 50% 40% at 0% 30%, rgba(236, 72, 153, 0.08), transparent 60%);
+        background-attachment: fixed;
+        min-height: 100vh;
+    }
+
+    ::selection {
+        background: rgba(139, 92, 246, 0.35);
+        color: #fff;
+    }
+}
+
+@layer components {
+    .glass {
+        background: rgba(24, 22, 38, 0.55);
+        backdrop-filter: blur(16px) saturate(140%);
+        -webkit-backdrop-filter: blur(16px) saturate(140%);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .glass-hover {
+        transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .glass-hover:hover {
+        background: rgba(34, 31, 52, 0.65);
+        border-color: rgba(255, 255, 255, 0.12);
+        transform: translateY(-1px);
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, oklch(0.62 0.24 295), oklch(0.55 0.24 280));
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 4px 16px -4px rgba(139, 92, 246, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+        transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-primary:hover {
+        box-shadow: 0 8px 24px -6px rgba(139, 92, 246, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+    }
+    .btn-primary:active {
+        transform: translateY(0);
+    }
+
+    .btn-ghost {
+        background: rgba(255, 255, 255, 0.04);
+        color: rgb(228, 228, 235);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .btn-ghost:hover {
+        background: rgba(255, 255, 255, 0.08);
+        border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .input-field {
+        background: rgba(15, 13, 25, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        color: rgb(245, 245, 250);
+        transition: all 180ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .input-field::placeholder {
+        color: rgb(120, 115, 140);
+    }
+    .input-field:focus {
+        outline: none;
+        border-color: oklch(0.62 0.24 295);
+        background: rgba(20, 17, 32, 0.8);
+        box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.12);
+    }
+
+    .chip {
+        background: rgba(139, 92, 246, 0.10);
+        border: 1px solid rgba(139, 92, 246, 0.22);
+        color: rgb(196, 181, 253);
+        font-size: 0.7rem;
+        letter-spacing: 0.02em;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+    }
+
+    .fade-in {
+        animation: fadeIn 280ms cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(6px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .pin-glow {
+        box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.35), 0 0 24px -8px rgba(251, 191, 36, 0.45);
+    }
+}
+
+@layer utilities {
+    .scrollbar-thin::-webkit-scrollbar { width: 8px; height: 8px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgba(139, 92, 246, 0.25);
+        border-radius: 999px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: rgba(139, 92, 246, 0.4);
+    }
+}
