@@ -37,6 +37,7 @@ mini-notes
 notes.db
 
 /dist
+/backups
 /uploads
 /notes.db-shm
 /notes.db-wal

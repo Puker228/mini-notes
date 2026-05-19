@@ -3,13 +3,12 @@ package notes
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	notesdb "github.com/Puker228/mini-notes/internal/notes/db"
+	notesdb "github.com/Puker228/mini-notes/internal/db"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
@@ -24,33 +23,25 @@ var (
 
 const timeLayout = time.RFC3339
 
-//go:embed db/schema.sql
-var schemaSQL string
-
 type scanner interface {
 	Scan(dest ...any) error
 }
 
-func InitDB(path string) error {
-	database, err := sql.Open("sqlite3", fmt.Sprintf("file:%s", path))
-	if err != nil {
-		return err
+func InitDB(database *sql.DB) error {
+	if database == nil {
+		return errors.New("nil database")
 	}
-
 	database.SetMaxOpenConns(1)
 
 	if err := database.Ping(); err != nil {
-		_ = database.Close()
 		return err
 	}
 
-	if _, err := database.Exec(schemaSQL); err != nil {
-		_ = database.Close()
+	if _, err := database.Exec(notesdb.SchemaSQL); err != nil {
 		return err
 	}
 
 	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
-		_ = database.Close()
 		return err
 	}
 
@@ -60,7 +51,6 @@ func InitDB(path string) error {
 		`PRAGMA foreign_keys=ON;`,
 	} {
 		if _, err := database.Exec(pragma); err != nil {
-			_ = database.Close()
 			return err
 		}
 	}
@@ -71,13 +61,9 @@ func InitDB(path string) error {
 }
 
 func CloseDB() error {
-	if db == nil {
-		return nil
-	}
-	err := db.Close()
 	db = nil
 	queries = nil
-	return err
+	return nil
 }
 
 func scanNote(s scanner) (Note, error) {
@@ -290,17 +276,25 @@ func parseTags(tags string) []string {
 }
 
 func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	qtx := queries.WithTx(tx)
+
 	for _, tag := range cleanTags {
-		if err := queries.AddTag(ctx, tag); err != nil {
+		if err := qtx.AddTag(ctx, tag); err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		tagID, err := queries.GetTagIDByName(ctx, tag)
+		tagID, err := qtx.GetTagIDByName(ctx, tag)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		err = queries.AddTagNote(ctx, notesdb.AddTagNoteParams{
+		err = qtx.AddTagNote(ctx, notesdb.AddTagNoteParams{
 			NoteID: noteID,
 			TagID:  tagID,
 		})
@@ -308,7 +302,7 @@ func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
 			return fmt.Errorf("addTags: %v", err)
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 func addNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {

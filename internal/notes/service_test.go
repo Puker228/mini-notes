@@ -2,6 +2,7 @@ package notes
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"path/filepath"
 	"slices"
@@ -12,12 +13,19 @@ func setupTestDB(t *testing.T) {
 	t.Helper()
 
 	dbPath := filepath.Join(t.TempDir(), "notes.db")
-	if err := InitDB(dbPath); err != nil {
+	database, err := sql.Open("sqlite3", "file:"+dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	if err := InitDB(database); err != nil {
 		t.Fatalf("InitDB() error = %v", err)
 	}
 	t.Cleanup(func() {
 		if err := CloseDB(); err != nil {
 			t.Fatalf("CloseDB() error = %v", err)
+		}
+		if err := database.Close(); err != nil {
+			t.Fatalf("database.Close() error = %v", err)
 		}
 	})
 }
@@ -60,7 +68,11 @@ func TestStorageCRUD(t *testing.T) {
 
 func TestStoragePersists(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "notes.db")
-	if err := InitDB(dbPath); err != nil {
+	database, err := sql.Open("sqlite3", "file:"+dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open() error = %v", err)
+	}
+	if err := InitDB(database); err != nil {
 		t.Fatalf("InitDB() error = %v", err)
 	}
 
@@ -72,12 +84,23 @@ func TestStoragePersists(t *testing.T) {
 	if err := CloseDB(); err != nil {
 		t.Fatalf("CloseDB() error = %v", err)
 	}
-	if err := InitDB(dbPath); err != nil {
+	if err := database.Close(); err != nil {
+		t.Fatalf("database.Close() error = %v", err)
+	}
+
+	reopened, err := sql.Open("sqlite3", "file:"+dbPath)
+	if err != nil {
+		t.Fatalf("sql.Open() after close error = %v", err)
+	}
+	if err := InitDB(reopened); err != nil {
 		t.Fatalf("InitDB() after close error = %v", err)
 	}
 	t.Cleanup(func() {
 		if err := CloseDB(); err != nil {
 			t.Fatalf("CloseDB() error = %v", err)
+		}
+		if err := reopened.Close(); err != nil {
+			t.Fatalf("database.Close() error = %v", err)
 		}
 	})
 
