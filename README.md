@@ -210,8 +210,8 @@ Follows Docker Compose logs for the app service.
 
 ## Database Queries
 
-SQL queries live in `internal/notes/db/query.sql` and the schema in
-`internal/notes/db/schema.sql`. Type-safe Go code is generated from them with
+SQL queries live in `internal/db/query.sql` and the schema in
+`internal/db/schema.sql`. Type-safe Go code is generated from them with
 [sqlc](https://sqlc.dev), configured in `sqlc.yaml`:
 
 ```sh
@@ -228,7 +228,7 @@ internal/notes/model.go      Note model and list parameters
 internal/notes/service.go    Notes service API
 internal/notes/storage.go    SQLite storage logic
 internal/notes/handlers.go   HTTP handlers
-internal/notes/db/           sqlc schema, queries, and generated code
+internal/db/                 sqlc schema, queries, and generated code
 internal/notes/*_test.go     Tests
 Dockerfile                   Multi-stage Docker build
 docker-compose.yaml          Docker Compose service and persistent volume

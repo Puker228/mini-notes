@@ -3,13 +3,12 @@ package notes
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"errors"
 	"fmt"
 	"strings"
 	"time"
 
-	notesdb "github.com/Puker228/mini-notes/internal/notes/db"
+	notesdb "github.com/Puker228/mini-notes/internal/db"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/html"
 	"github.com/gomarkdown/markdown/parser"
@@ -23,9 +22,6 @@ var (
 )
 
 const timeLayout = time.RFC3339
-
-//go:embed db/schema.sql
-var schemaSQL string
 
 type scanner interface {
 	Scan(dest ...any) error
@@ -41,7 +37,7 @@ func InitDB(database *sql.DB) error {
 		return err
 	}
 
-	if _, err := database.Exec(schemaSQL); err != nil {
+	if _, err := database.Exec(notesdb.SchemaSQL); err != nil {
 		return err
 	}
 
