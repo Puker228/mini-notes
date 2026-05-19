@@ -1,15 +1,18 @@
 package backup
 
-import "context"
+import (
+	"context"
+	"database/sql"
+)
 
 type Service struct {
-	dbPath     string
+	db         *sql.DB
 	uploadsDir string
 }
 
-func NewService(dbPath, uploadsDir string) *Service {
+func NewService(db *sql.DB, uploadsDir string) *Service {
 	return &Service{
-		dbPath:     dbPath,
+		db:         db,
 		uploadsDir: uploadsDir,
 	}
 }

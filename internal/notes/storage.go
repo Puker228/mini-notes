@@ -31,26 +31,21 @@ type scanner interface {
 	Scan(dest ...any) error
 }
 
-func InitDB(path string) error {
-	database, err := sql.Open("sqlite3", fmt.Sprintf("file:%s", path))
-	if err != nil {
-		return err
+func InitDB(database *sql.DB) error {
+	if database == nil {
+		return errors.New("nil database")
 	}
-
 	database.SetMaxOpenConns(1)
 
 	if err := database.Ping(); err != nil {
-		_ = database.Close()
 		return err
 	}
 
 	if _, err := database.Exec(schemaSQL); err != nil {
-		_ = database.Close()
 		return err
 	}
 
 	if _, err := database.Exec(`INSERT INTO notes_fts(notes_fts) VALUES ('rebuild');`); err != nil {
-		_ = database.Close()
 		return err
 	}
 
@@ -60,7 +55,6 @@ func InitDB(path string) error {
 		`PRAGMA foreign_keys=ON;`,
 	} {
 		if _, err := database.Exec(pragma); err != nil {
-			_ = database.Close()
 			return err
 		}
 	}
@@ -71,13 +65,9 @@ func InitDB(path string) error {
 }
 
 func CloseDB() error {
-	if db == nil {
-		return nil
-	}
-	err := db.Close()
 	db = nil
 	queries = nil
-	return err
+	return nil
 }
 
 func scanNote(s scanner) (Note, error) {

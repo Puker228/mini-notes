@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"embed"
 	"html/template"
 	"io"
@@ -20,6 +21,7 @@ import (
 	"github.com/Puker228/mini-notes/internal/notes"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
+	_ "github.com/ncruces/go-sqlite3/driver"
 )
 
 //go:embed templates/* static/*
@@ -79,12 +81,22 @@ func main() {
 		log.Fatalf("failed to create uploads directory: %s", err)
 	}
 
-	if err := notes.InitDB(dbPath); err != nil {
+	database, err := sql.Open("sqlite3", "file:"+dbPath)
+	if err != nil {
+		log.Fatalf("failed to open sqlite database: %s", err)
+	}
+	defer func() {
+		if err := database.Close(); err != nil {
+			log.Println("failed to close sqlite database:", err)
+		}
+	}()
+
+	if err := notes.InitDB(database); err != nil {
 		log.Fatalf("failed to initialize sqlite database: %s", err)
 	}
 	defer func() {
 		if err := notes.CloseDB(); err != nil {
-			log.Println("failed to close sqlite database:", err)
+			log.Println("failed to detach sqlite database:", err)
 		}
 	}()
 
@@ -165,7 +177,7 @@ func main() {
 	router.DELETE("/note/:id/permanent", notesHandler.PermanentDeleteNote)
 	router.GET("/archive", notesHandler.ListArchive)
 
-	backupService := backup.NewService(dbPath, uploadsDir)
+	backupService := backup.NewService(database, uploadsDir)
 	backupHandler := backup.NewHandler(backupService)
 	router.GET("/backup", backupHandler.Save)
 	router.POST("/backup/restore", backupHandler.Restore)
