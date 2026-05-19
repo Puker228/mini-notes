@@ -2,12 +2,13 @@ package backup
 
 import (
 	"context"
+	"io"
 	"time"
 )
 
 type Storage interface {
 	Save(ctx context.Context) error
-	Restore(ctx context.Context) error
+	Restore(ctx context.Context, archive io.ReaderAt, size int64) error
 }
 
 type Manifest struct {

@@ -1,6 +1,8 @@
 package backup
 
 import (
+	"net/http"
+
 	"github.com/labstack/echo/v5"
 )
 
@@ -18,6 +20,16 @@ func (h *Handler) Save(c *echo.Context) error {
 }
 
 func (h *Handler) Restore(c *echo.Context) error {
-	ctx := c.Request().Context()
-	return h.service.Restore(ctx)
+	fileHeader, err := c.FormFile("backup")
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "backup file is required")
+	}
+
+	file, err := fileHeader.Open()
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	return h.service.Restore(c.Request().Context(), file, fileHeader.Size)
 }
