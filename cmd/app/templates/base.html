@@ -4,103 +4,123 @@
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Mini Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="/static/app.css" rel="stylesheet"/>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-<div class="max-w-2xl mx-auto px-4 py-12">
+<body class="text-zinc-100 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-10 fade-in">
 
-    <div class="flex items-center justify-between mb-6">
-        <h1 class="text-3xl font-bold tracking-tight">📝 Mini Notes</h1>
+    <header class="flex items-center justify-between mb-8">
         <div class="flex items-center gap-3">
-            <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors" href="/archive">Archive</a>
-            <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
-               href="/note/private/new">🔒
-                Private</a>
-            <a class="bg-zinc-100 text-zinc-900 font-semibold px-4 py-2 rounded-xl hover:bg-white transition-colors text-sm"
-               href="/note/new">+
-                New</a>
+            <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+                 style="background: linear-gradient(135deg, oklch(0.62 0.24 295), oklch(0.55 0.24 240)); box-shadow: 0 6px 20px -6px rgba(139,92,246,0.5);">
+                ✦
+            </div>
+            <div>
+                <h1 class="text-2xl font-bold tracking-tight bg-clip-text text-transparent"
+                    style="background-image: linear-gradient(135deg, #fff, #c4b5fd);">Mini Notes</h1>
+                <p class="text-xs text-zinc-500 -mt-0.5">Capture. Encrypt. Forget nothing.</p>
+            </div>
         </div>
-    </div>
+        <div class="flex items-center gap-2">
+            <a class="btn-ghost px-3 py-2 rounded-xl text-sm" href="/archive">
+                <span class="opacity-70">🗃</span> Archive
+            </a>
+            <a class="btn-ghost px-3 py-2 rounded-xl text-sm" href="/note/private/new">
+                <span class="opacity-70">🔒</span> Private
+            </a>
+            <a class="btn-primary px-4 py-2 rounded-xl text-sm" href="/note/new">
+                + New note
+            </a>
+        </div>
+    </header>
 
-    <div class="flex items-center gap-2 mb-6">
-        <button class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
+    <div class="glass rounded-2xl p-4 mb-6 flex flex-wrap items-center gap-3">
+        <button class="btn-ghost px-3 py-2 rounded-xl text-sm disabled:opacity-50"
                 id="backup-create" type="button" onclick="createBackup()">💾 Create backup
         </button>
-        <button class="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded-xl text-sm transition-colors disabled:opacity-50"
+        <button class="btn-ghost px-3 py-2 rounded-xl text-sm disabled:opacity-50"
                 id="backup-restore" type="button" onclick="document.getElementById('backup-file').click()">♻️ Restore from ZIP
         </button>
         <input accept=".zip" class="hidden" id="backup-file" type="file" onchange="restoreBackup(this)"/>
-        <span class="text-zinc-500 text-sm" id="backup-status"></span>
+        <span class="text-zinc-400 text-sm" id="backup-status"></span>
     </div>
 
-    <form action="/note" class="flex flex-wrap gap-2 mb-6" method="GET">
-        <input
-                class="flex-1 bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors text-sm"
-                name="q"
-                placeholder="Search by title and text..."
-                type="text"
-                value="{{.Query}}"
-        />
-        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
-                name="tag">
+    <form action="/note" class="glass rounded-2xl p-4 mb-6 flex flex-wrap gap-2" method="GET">
+        <div class="relative flex-1 min-w-[200px]">
+            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 text-sm pointer-events-none">⌕</span>
+            <input
+                    class="input-field w-full rounded-xl pl-9 pr-4 py-2.5 text-sm"
+                    name="q"
+                    placeholder="Search notes…"
+                    type="text"
+                    value="{{.Query}}"
+            />
+        </div>
+        <select class="input-field rounded-xl px-3 py-2 text-sm cursor-pointer" name="tag">
             <option value="" {{if eq .Tag ""}}selected{{end}}>All tags</option>
             {{range .Tags}}
             <option value="{{.}}" {{if eq $.Tag .}}selected{{end}}>{{.}}</option>
             {{end}}
         </select>
-        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
-                name="sort">
+        <select class="input-field rounded-xl px-3 py-2 text-sm cursor-pointer" name="sort">
             <option value="created_at" {{if or (eq .Sort "created_at") (eq .Sort "")}}selected{{end}}>Created</option>
             <option value="updated_at" {{if eq .Sort "updated_at"}}selected{{end}}>Modified</option>
             <option value="title" {{if eq .Sort "title"}}selected{{end}}>Title</option>
         </select>
-        <select class="bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm focus:outline-none focus:border-zinc-500 cursor-pointer"
-                name="order">
+        <select class="input-field rounded-xl px-3 py-2 text-sm cursor-pointer" name="order">
             <option value="desc" {{if or (eq .Order "desc") (eq .Order "")}}selected{{end}}>↓ Newest</option>
             <option value="asc" {{if eq .Order "asc"}}selected{{end}}>↑ Oldest</option>
         </select>
-        <label class="flex items-center gap-2 bg-zinc-900 border border-zinc-800 rounded-xl px-3 py-2 text-zinc-300 text-sm whitespace-nowrap cursor-pointer">
-            <input class="accent-zinc-100" name="encrypted" type="checkbox" value="1" {{if .EncryptedOnly}}checked{{end}}/>
-            Encrypted only
+        <label class="input-field flex items-center gap-2 rounded-xl px-3 py-2 text-sm whitespace-nowrap cursor-pointer">
+            <input class="accent-violet-500" name="encrypted" type="checkbox" value="1" {{if .EncryptedOnly}}checked{{end}}/>
+            <span class="text-zinc-300">Encrypted only</span>
         </label>
-        <button class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors text-zinc-300"
-                type="submit">Search
-        </button>
+        <button class="btn-primary px-4 py-2 rounded-xl text-sm" type="submit">Search</button>
     </form>
 
     {{if .Result.Notes}}
     <ul class="space-y-3">
         {{range .Result.Notes}}
-        <li class="bg-zinc-900 border {{if .IsPinned}}border-zinc-500{{else}}border-zinc-800{{end}} rounded-xl p-5 hover:border-zinc-600 transition-colors">
+        <li class="glass glass-hover rounded-2xl p-5 {{if .IsPinned}}pin-glow{{end}}">
             <div class="flex gap-4 items-start">
                 <a class="flex gap-4 items-start min-w-0 flex-1" href="/note/{{.ID}}">
                     {{if and .ImageData (not .IsEncrypted)}}
-                    <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0"
+                    <img alt="" class="w-16 h-16 object-cover rounded-xl shrink-0 ring-1 ring-white/10"
                          src="/uploads/{{.ImageData}}"/>
+                    {{else if .IsEncrypted}}
+                    <div class="w-16 h-16 rounded-xl shrink-0 flex items-center justify-center text-2xl"
+                         style="background: linear-gradient(135deg, rgba(139,92,246,0.15), rgba(56,189,248,0.1)); border: 1px solid rgba(139,92,246,0.25);">
+                        🔒
+                    </div>
                     {{end}}
                     <div class="min-w-0 flex-1">
                         <div class="flex items-center gap-2">
-                            {{if .IsPinned}}<span class="text-zinc-400 text-sm" title="Pinned">📌</span>{{end}}
-                            <p class="font-semibold text-lg text-zinc-100 truncate">{{.Title}}</p>
+                            {{if .IsPinned}}<span class="text-amber-300 text-sm" title="Pinned">📌</span>{{end}}
+                            <p class="font-semibold text-lg text-zinc-50 truncate">{{.Title}}</p>
                         </div>
                         {{if not .IsEncrypted}}
-                        <p class="text-zinc-400 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                        <p class="text-zinc-400 text-sm mt-1 line-clamp-2 leading-relaxed">{{.Content}}</p>
                         {{if .Tags}}
-                        <div class="flex flex-wrap gap-2 mt-2">
+                        <div class="flex flex-wrap gap-1.5 mt-3">
                             {{range .Tags}}
-                            <span class="text-xs text-zinc-400 border border-zinc-800 rounded px-2 py-1">{{.}}</span>
+                            <span class="chip">{{.}}</span>
                             {{end}}
                         </div>
                         {{end}}
-                        <p class="text-zinc-600 text-xs mt-2">{{formatDate .CreatedAt}}</p>
+                        <p class="text-zinc-500 text-xs mt-3">{{formatDate .CreatedAt}}</p>
+                        {{else}}
+                        <p class="text-zinc-500 text-sm mt-1 italic">Encrypted note</p>
                         {{end}}
                     </div>
                 </a>
                 <div class="shrink-0">
-                    <button class="text-sm {{if .IsPinned}}text-zinc-100 border-zinc-500{{else}}text-zinc-400 border-zinc-700{{end}} hover:text-white hover:border-zinc-400 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                    <button class="text-sm {{if .IsPinned}}text-amber-200 border-amber-500/40 bg-amber-500/10{{else}}text-zinc-400 border-white/10 bg-white/[0.03]{{end}} hover:text-white hover:border-white/25 border px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
                             onclick="togglePin({{.ID}})">
-                        {{if .IsPinned}}Unpin{{else}}Pin{{end}}
+                        {{if .IsPinned}}📌 Unpin{{else}}Pin{{end}}
                     </button>
                 </div>
             </div>
@@ -109,15 +129,15 @@
     </ul>
 
     {{if gt .Result.TotalPages 1}}
-    <div class="flex items-center justify-between mt-6">
+    <div class="flex items-center justify-between mt-8">
         <span class="text-zinc-500 text-sm">Page {{.Result.Page}} of {{.Result.TotalPages}} · {{.Result.Total}} notes</span>
         <div class="flex gap-2">
             {{if .Result.HasPrev}}
-            <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
+            <a class="btn-ghost px-4 py-2 rounded-xl text-sm"
                href="?q={{urlEncode .Query}}&tag={{urlEncode .Tag}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.PrevPage}}">← Back</a>
             {{end}}
             {{if .Result.HasNext}}
-            <a class="bg-zinc-800 hover:bg-zinc-700 px-4 py-2 rounded-xl text-sm transition-colors"
+            <a class="btn-ghost px-4 py-2 rounded-xl text-sm"
                href="?q={{urlEncode .Query}}&tag={{urlEncode .Tag}}&sort={{.Sort}}&order={{.Order}}{{if .EncryptedOnly}}&encrypted=1{{end}}&page={{.Result.NextPage}}">Next →</a>
             {{end}}
         </div>
@@ -125,9 +145,12 @@
     {{end}}
 
     {{else}}
-    <p class="text-zinc-500">
-        {{if or .Query .Tag}}Nothing found.{{else}}No notes yet.{{end}}
-    </p>
+    <div class="glass rounded-2xl p-12 text-center">
+        <div class="text-5xl mb-3 opacity-50">📭</div>
+        <p class="text-zinc-400">
+            {{if or .Query .Tag}}Nothing matches your search.{{else}}No notes yet — create your first one.{{end}}
+        </p>
+    </div>
     {{end}}
 
 </div>
@@ -150,8 +173,8 @@
         btn.disabled = true
         backupStatus('Creating backup...')
         fetch('/backup', {headers: {'X-CSRF-Token': csrfToken()}})
-            .then(r => backupStatus(r.ok ? 'Backup created.' : 'Backup failed.'))
-            .catch(() => backupStatus('Backup failed.'))
+            .then(r => backupStatus(r.ok ? '✓ Backup created.' : '✗ Backup failed.'))
+            .catch(() => backupStatus('✗ Backup failed.'))
             .finally(() => btn.disabled = false)
     }
 
@@ -168,8 +191,8 @@
             headers: {'X-CSRF-Token': csrfToken()},
             body: form
         })
-            .then(r => backupStatus(r.ok ? 'Restore complete.' : 'Restore failed.'))
-            .catch(() => backupStatus('Restore failed.'))
+            .then(r => backupStatus(r.ok ? '✓ Restore complete.' : '✗ Restore failed.'))
+            .catch(() => backupStatus('✗ Restore failed.'))
             .finally(() => { btn.disabled = false; input.value = '' })
     }
 </script>

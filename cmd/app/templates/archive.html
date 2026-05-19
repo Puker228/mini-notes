@@ -4,40 +4,54 @@
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>Archive — Mini Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="/static/app.css" rel="stylesheet"/>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-<div class="max-w-2xl mx-auto px-4 py-12">
+<body class="text-zinc-100 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-10 fade-in">
 
-    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-4 inline-block" href="/note">← All
-        notes</a>
-    <h1 class="text-3xl font-bold tracking-tight mb-8">🗃 Archive</h1>
+    <a class="text-zinc-400 hover:text-zinc-100 text-sm transition-colors mb-6 inline-flex items-center gap-1.5 group" href="/note">
+        <span class="transition-transform group-hover:-translate-x-0.5">←</span> All notes
+    </a>
+
+    <div class="flex items-center gap-3 mt-4 mb-8">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+             style="background: linear-gradient(135deg, oklch(0.45 0.05 270), oklch(0.35 0.05 260)); box-shadow: 0 6px 20px -6px rgba(100,116,139,0.4);">
+            🗃
+        </div>
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">Archive</h1>
+            <p class="text-xs text-zinc-500 mt-0.5">Deleted notes, restorable</p>
+        </div>
+    </div>
 
     {{if .Notes}}
     <ul class="space-y-3" id="archive-list">
         {{range .Notes}}
-        <li class="bg-zinc-900 border border-zinc-800 rounded-xl p-5" id="note-{{.ID}}">
+        <li class="glass rounded-2xl p-5 opacity-90" id="note-{{.ID}}">
             <div class="flex gap-4 items-start">
                 {{if and .ImageData (not .IsEncrypted)}}
-                <img alt="" class="w-16 h-16 object-cover rounded-lg shrink-0 opacity-40"
+                <img alt="" class="w-16 h-16 object-cover rounded-xl shrink-0 opacity-40 ring-1 ring-white/10"
                      src="/uploads/{{.ImageData}}"/>
                 {{end}}
                 <div class="min-w-0 flex-1">
-                    <p class="font-semibold text-lg text-zinc-500">{{.Title}}</p>
+                    <p class="font-semibold text-lg text-zinc-400 truncate">{{.Title}}</p>
                     {{if not .IsEncrypted}}
-                    <p class="text-zinc-600 text-sm mt-1 line-clamp-2">{{.Content}}</p>
+                    <p class="text-zinc-500 text-sm mt-1 line-clamp-2 leading-relaxed">{{.Content}}</p>
                     {{end}}
-                    <p class="text-zinc-700 text-xs mt-2">Deleted: {{formatDate .DeletedAt}}</p>
+                    <p class="text-zinc-600 text-xs mt-2">🗑 Deleted: {{formatDate .DeletedAt}}</p>
                 </div>
                 <div class="shrink-0 flex flex-col gap-2">
-                    <button class="text-sm text-green-500 hover:text-green-400 border border-green-900 hover:border-green-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                    <button class="text-sm text-emerald-300 bg-emerald-500/10 border border-emerald-500/25 hover:bg-emerald-500/20 hover:border-emerald-500/50 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
                             onclick="restoreNote({{.ID}})">
-                        Restore
+                        ↺ Restore
                     </button>
-                    <button class="text-sm text-red-500 hover:text-red-400 border border-red-900 hover:border-red-700 px-3 py-1.5 rounded transition-colors whitespace-nowrap"
+                    <button class="text-sm text-red-300 bg-red-500/10 border border-red-500/25 hover:bg-red-500/20 hover:border-red-500/50 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap"
                             onclick="permanentDelete({{.ID}})">
-                        Delete permanently
+                        🗑 Delete forever
                     </button>
                 </div>
             </div>
@@ -45,17 +59,20 @@
         {{end}}
     </ul>
     {{else}}
-    <p class="text-zinc-500">Archive is empty.</p>
+    <div class="glass rounded-2xl p-12 text-center">
+        <div class="text-5xl mb-3 opacity-50">🌬</div>
+        <p class="text-zinc-400">Archive is empty.</p>
+    </div>
     {{end}}
 
 </div>
 
-<div id="modal-overlay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+<div id="modal-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="glass rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl fade-in">
         <p id="modal-message" class="text-zinc-100 text-base mb-6"></p>
-        <div class="flex gap-3 justify-end">
-            <button id="modal-cancel" class="px-4 py-2 rounded-xl text-sm text-zinc-300 border border-zinc-700 hover:border-zinc-500 transition-colors">Cancel</button>
-            <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-700 hover:bg-red-600 text-white transition-colors">Delete</button>
+        <div class="flex gap-2 justify-end">
+            <button id="modal-cancel" class="btn-ghost px-4 py-2 rounded-xl text-sm">Cancel</button>
+            <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-500/90 hover:bg-red-500 text-white transition-colors">Delete</button>
         </div>
     </div>
 </div>
@@ -90,7 +107,7 @@
     }
 
     async function permanentDelete(id) {
-        if (!await showConfirm('Delete permanently? This action cannot be undone.', 'Delete permanently')) return
+        if (!await showConfirm('Delete permanently? This action cannot be undone.', 'Delete forever')) return
         fetch('/note/' + id + '/permanent', {
             method: 'DELETE',
             headers: {'X-CSRF-Token': csrfToken()}

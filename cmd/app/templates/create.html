@@ -4,23 +4,33 @@
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>New Note — Mini Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="/static/app.css" rel="stylesheet"/>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-<div class="max-w-2xl mx-auto px-4 py-12">
+<body class="text-zinc-100 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-10 fade-in">
 
-    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← All
-        notes</a>
+    <a class="text-zinc-400 hover:text-zinc-100 text-sm transition-colors mb-6 inline-flex items-center gap-1.5 group" href="/note">
+        <span class="transition-transform group-hover:-translate-x-0.5">←</span> All notes
+    </a>
 
-    <h1 class="text-3xl font-bold mt-4 mb-8 tracking-tight">New Note</h1>
+    <div class="flex items-center gap-3 mt-4 mb-8">
+        <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl"
+             style="background: linear-gradient(135deg, oklch(0.62 0.24 295), oklch(0.55 0.24 240)); box-shadow: 0 6px 20px -6px rgba(139,92,246,0.5);">
+            ✎
+        </div>
+        <h1 class="text-3xl font-bold tracking-tight">New Note</h1>
+    </div>
 
-    <form action="/note" class="space-y-5" enctype="multipart/form-data" method="POST">
+    <form action="/note" class="glass rounded-2xl p-6 space-y-5" enctype="multipart/form-data" method="POST">
         <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="title">Title</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2" for="title">Title</label>
             <input
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    class="input-field w-full rounded-xl px-4 py-3"
                     id="title"
                     name="title"
                     placeholder="Note title"
@@ -29,42 +39,40 @@
             />
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="content">Content</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2" for="content">Content</label>
             <textarea
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors resize-none"
+                    class="input-field w-full rounded-xl px-4 py-3 resize-none scrollbar-thin"
                     id="content"
                     name="content"
-                    placeholder="Note text..."
-                    rows="6"
+                    placeholder="Start writing…"
+                    rows="8"
             ></textarea>
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="tags">Tags</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2" for="tags">Tags</label>
             <input
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
+                    class="input-field w-full rounded-xl px-4 py-3"
                     id="tags"
                     name="tags"
                     placeholder="work, ideas, personal"
                     type="text"
             />
-            <p class="mt-2 text-sm text-zinc-500">Tags must be separated with ",".</p>
+            <p class="mt-2 text-xs text-zinc-500">Separate tags with commas.</p>
         </div>
         <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="image">Image (optional)</label>
+            <label class="block text-sm font-medium text-zinc-300 mb-2" for="image">Image <span class="text-zinc-500 font-normal">(optional)</span></label>
             <input
                     accept="image/*"
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-zinc-700 file:text-zinc-100 hover:file:bg-zinc-600 cursor-pointer"
+                    class="input-field w-full rounded-xl px-4 py-3 text-zinc-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-violet-500/20 file:text-violet-200 hover:file:bg-violet-500/30 cursor-pointer"
                     id="image"
                     name="image"
                     type="file"
             />
         </div>
-        <button
-                class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
-                type="submit"
-        >
-            Create
-        </button>
+        <div class="flex items-center justify-end gap-2 pt-2">
+            <a href="/note" class="btn-ghost px-5 py-2.5 rounded-xl text-sm">Cancel</a>
+            <button class="btn-primary px-6 py-2.5 rounded-xl text-sm" type="submit">Create note</button>
+        </div>
     </form>
 
 </div>

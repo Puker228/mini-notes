@@ -4,89 +4,102 @@
     <meta charset="UTF-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
     <title>{{if .Note}}{{.Note.Title}}{{else}}Note{{end}} — Mini Notes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"/>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
     <link href="/static/app.css" rel="stylesheet"/>
     <meta content="{{.CSRFToken}}" name="csrf-token"/>
 </head>
-<body class="bg-zinc-950 text-zinc-100 min-h-screen">
-<div class="max-w-2xl mx-auto px-4 py-12">
+<body class="text-zinc-100 min-h-screen">
+<div class="max-w-3xl mx-auto px-4 py-10 fade-in">
 
-    <a class="text-zinc-500 hover:text-zinc-300 text-sm transition-colors mb-8 inline-block" href="/note">← All
-        notes</a>
+    <a class="text-zinc-400 hover:text-zinc-100 text-sm transition-colors mb-6 inline-flex items-center gap-1.5 group" href="/note">
+        <span class="transition-transform group-hover:-translate-x-0.5">←</span> All notes
+    </a>
 
     {{if .Note}}
-    <div class="flex items-start justify-between mt-4 mb-4 gap-4">
-        <div class="min-w-0">
-            {{if .Note.IsPinned}}<p class="text-sm text-zinc-400 mb-2">📌 Pinned</p>{{end}}
-            <h1 class="text-3xl font-bold tracking-tight break-words">{{.Note.Title}}</h1>
+    <article class="glass rounded-2xl p-6 sm:p-8 mt-4">
+        <div class="flex items-start justify-between mb-6 gap-4">
+            <div class="min-w-0">
+                {{if .Note.IsPinned}}
+                <div class="inline-flex items-center gap-1.5 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/25 rounded-full px-2.5 py-1 mb-3">
+                    📌 Pinned
+                </div>
+                {{end}}
+                {{if .Note.IsEncrypted}}
+                <div class="inline-flex items-center gap-1.5 text-xs text-violet-300 bg-violet-500/10 border border-violet-500/25 rounded-full px-2.5 py-1 mb-3">
+                    🔒 Encrypted
+                </div>
+                {{end}}
+                <h1 class="text-3xl sm:text-4xl font-bold tracking-tight break-words leading-tight">{{.Note.Title}}</h1>
+            </div>
+            <div class="shrink-0 flex items-center gap-2">
+                <button class="btn-ghost text-sm px-3 py-1.5 rounded-lg" onclick="togglePin({{.Note.ID}})">
+                    {{if .Note.IsPinned}}Unpin{{else}}📌 Pin{{end}}
+                </button>
+                <a class="btn-ghost text-sm px-3 py-1.5 rounded-lg" href="/note/{{.Note.ID}}/edit">✎ Edit</a>
+                {{if not .Note.IsEncrypted}}
+                <button class="text-sm text-red-300 bg-red-500/10 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 px-3 py-1.5 rounded-lg transition-all"
+                        onclick="deleteNote({{.Note.ID}})">
+                    🗑 Delete
+                </button>
+                {{end}}
+            </div>
         </div>
-        <div class="shrink-0 flex items-center gap-2">
-            <button class="text-sm text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors"
-                    onclick="togglePin({{.Note.ID}})">
-                {{if .Note.IsPinned}}Unpin{{else}}Pin{{end}}
-            </button>
-            <a class="text-sm text-zinc-300 hover:text-white border border-zinc-700 hover:border-zinc-500 px-3 py-1.5 rounded transition-colors"
-               href="/note/{{.Note.ID}}/edit">Edit</a>
-            {{if not .Note.IsEncrypted}}
-            <button class="text-sm text-red-500 hover:text-red-400 border border-red-800 hover:border-red-600 px-3 py-1.5 rounded transition-colors"
-                    onclick="deleteNote({{.Note.ID}})">
-                Delete
-            </button>
-            {{end}}
-        </div>
-    </div>
-    {{if and .Note.ImageData (not .Note.IsEncrypted)}}
-    <img alt="" class="rounded-xl mb-6 max-h-96 object-contain" src="/uploads/{{.Note.ImageData}}"/>
-    {{end}}
-    {{if .Note.IsEncrypted}}
-    <form action="/note/{{.Note.ID}}/decrypt" class="space-y-5 mt-6" method="POST">
-        <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
-        <div>
-            <label class="block text-sm text-zinc-400 mb-1" for="password">Password</label>
-            <input
-                    class="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 placeholder-zinc-600 focus:outline-none focus:border-zinc-500 transition-colors"
-                    id="password"
-                    name="password"
-                    placeholder="Encryption password"
-                    required
-                    type="password"
-            />
-            {{if .Error}}
-            <p class="mt-2 text-sm text-red-400">{{.Error}}</p>
-            {{end}}
-        </div>
-        <button
-                class="bg-zinc-100 text-zinc-900 font-semibold px-6 py-2.5 rounded-xl hover:bg-white transition-colors"
-                type="submit"
-        >
-            Open
-        </button>
-    </form>
-    {{else}}
-    <p class="text-zinc-300 leading-relaxed whitespace-pre-wrap">{{safeHtml .Note.Content}}</p>
-    {{if .Note.Tags}}
-    <div class="flex flex-wrap gap-2 mt-6">
-        {{range .Note.Tags}}
-        <span class="text-xs text-zinc-400 border border-zinc-800 rounded px-2 py-1">{{.}}</span>
+
+        {{if and .Note.ImageData (not .Note.IsEncrypted)}}
+        <img alt="" class="rounded-xl mb-6 max-h-96 object-contain ring-1 ring-white/10" src="/uploads/{{.Note.ImageData}}"/>
         {{end}}
-    </div>
-    {{end}}
-    <div class="flex gap-4 mt-8 text-xs text-zinc-600 border-t border-zinc-800 pt-4">
-        <span>Created: {{formatDate .Note.CreatedAt}}</span>
-        <span>Modified: {{formatDate .Note.UpdatedAt}}</span>
-    </div>
-    {{end}}
+
+        {{if .Note.IsEncrypted}}
+        <form action="/note/{{.Note.ID}}/decrypt" class="space-y-5 mt-2" method="POST">
+            <input name="_csrf" type="hidden" value="{{.CSRFToken}}"/>
+            <div>
+                <label class="block text-sm font-medium text-zinc-300 mb-2" for="password">Password</label>
+                <input
+                        class="input-field w-full rounded-xl px-4 py-3"
+                        id="password"
+                        name="password"
+                        placeholder="Encryption password"
+                        required
+                        type="password"
+                />
+                {{if .Error}}
+                <p class="mt-2 text-sm text-red-400 flex items-center gap-1.5">⚠ {{.Error}}</p>
+                {{end}}
+            </div>
+            <button class="btn-primary px-6 py-2.5 rounded-xl text-sm" type="submit">🔓 Decrypt</button>
+        </form>
+        {{else}}
+        <p class="text-zinc-200 leading-relaxed whitespace-pre-wrap text-[15px]">{{safeHtml .Note.Content}}</p>
+        {{if .Note.Tags}}
+        <div class="flex flex-wrap gap-1.5 mt-6">
+            {{range .Note.Tags}}
+            <span class="chip">{{.}}</span>
+            {{end}}
+        </div>
+        {{end}}
+        <div class="flex flex-wrap gap-4 mt-8 text-xs text-zinc-500 border-t border-white/[0.06] pt-4">
+            <span>📅 Created: {{formatDate .Note.CreatedAt}}</span>
+            <span>✎ Modified: {{formatDate .Note.UpdatedAt}}</span>
+        </div>
+        {{end}}
+    </article>
     {{else}}
-    <p class="text-zinc-500 mt-4">Note not found.</p>
+    <div class="glass rounded-2xl p-12 text-center mt-4">
+        <div class="text-5xl mb-3 opacity-50">🔍</div>
+        <p class="text-zinc-400">Note not found.</p>
+    </div>
     {{end}}
 
 </div>
 
-<div id="modal-overlay" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 hidden">
-    <div class="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-sm w-full mx-4 shadow-xl">
+<div id="modal-overlay" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+    <div class="glass rounded-2xl p-6 max-w-sm w-full mx-4 shadow-2xl fade-in">
         <p id="modal-message" class="text-zinc-100 text-base mb-6"></p>
-        <div class="flex gap-3 justify-end">
-            <button id="modal-cancel" class="px-4 py-2 rounded-xl text-sm text-zinc-300 border border-zinc-700 hover:border-zinc-500 transition-colors">Cancel</button>
-            <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-700 hover:bg-red-600 text-white transition-colors">Delete</button>
+        <div class="flex gap-2 justify-end">
+            <button id="modal-cancel" class="btn-ghost px-4 py-2 rounded-xl text-sm">Cancel</button>
+            <button id="modal-confirm" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-500/90 hover:bg-red-500 text-white transition-colors">Delete</button>
         </div>
     </div>
 </div>
