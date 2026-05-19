@@ -35,6 +35,7 @@ clean-apps:
 clean-all: clean-apps
 	rm -rf uploads/
 	rm -f notes.db*
+	rm -rf backups/
 
 gen-sqlc:
 	sqlc generate

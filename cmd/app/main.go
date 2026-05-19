@@ -72,6 +72,11 @@ func main() {
 	if dbPath == "" {
 		dbPath = "notes.db"
 	}
+	if dbDir := filepath.Dir(dbPath); dbDir != "." {
+		if err := os.MkdirAll(dbDir, 0o755); err != nil {
+			log.Fatalf("failed to create database directory: %s", err)
+		}
+	}
 
 	uploadsDir := os.Getenv("NOTES_UPLOADS_PATH")
 	if uploadsDir == "" {
@@ -79,6 +84,14 @@ func main() {
 	}
 	if err := os.MkdirAll(uploadsDir, 0o755); err != nil {
 		log.Fatalf("failed to create uploads directory: %s", err)
+	}
+
+	backupDir := os.Getenv("NOTES_BACKUP_PATH")
+	if backupDir == "" {
+		backupDir = "backups"
+	}
+	if err := os.MkdirAll(backupDir, 0o755); err != nil {
+		log.Fatalf("failed to create backups directory: %s", err)
 	}
 
 	database, err := sql.Open("sqlite3", "file:"+dbPath)
@@ -177,7 +190,7 @@ func main() {
 	router.DELETE("/note/:id/permanent", notesHandler.PermanentDeleteNote)
 	router.GET("/archive", notesHandler.ListArchive)
 
-	backupService := backup.NewService(database, uploadsDir)
+	backupService := backup.NewService(database, backupDir, uploadsDir)
 	backupHandler := backup.NewHandler(backupService)
 	router.GET("/backup", backupHandler.Save)
 	router.POST("/backup/restore", backupHandler.Restore)

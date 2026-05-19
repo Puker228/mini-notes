@@ -8,9 +8,10 @@ services:
     ports:
       - "8800:8800"
     environment:
-      NOTES_DB_PATH: /data/notes.db
+      NOTES_DB_PATH: /data/db/notes.db
       NOTES_UPLOADS_PATH: /data/uploads
       NOTES_LOG_PATH: /data/logs/mini-notes.log
+      NOTES_BACKUP_PATH: /data/backups
     volumes:
       - mini-notes-data:/data
 
