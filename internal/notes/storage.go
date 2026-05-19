@@ -290,17 +290,25 @@ func parseTags(tags string) []string {
 }
 
 func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	qtx := queries.WithTx(tx)
+
 	for _, tag := range cleanTags {
-		if err := queries.AddTag(ctx, tag); err != nil {
+		if err := qtx.AddTag(ctx, tag); err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		tagID, err := queries.GetTagIDByName(ctx, tag)
+		tagID, err := qtx.GetTagIDByName(ctx, tag)
 		if err != nil {
 			return fmt.Errorf("addTags: %v", err)
 		}
 
-		err = queries.AddTagNote(ctx, notesdb.AddTagNoteParams{
+		err = qtx.AddTagNote(ctx, notesdb.AddTagNoteParams{
 			NoteID: noteID,
 			TagID:  tagID,
 		})
@@ -308,7 +316,7 @@ func addTags(ctx context.Context, cleanTags []string, noteID int64) error {
 			return fmt.Errorf("addTags: %v", err)
 		}
 	}
-	return nil
+	return tx.Commit()
 }
 
 func addNote(ctx context.Context, title, content, imageData, tags string) (Note, error) {
