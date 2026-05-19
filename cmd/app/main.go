@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/Puker228/mini-notes/internal/backup"
 	"github.com/Puker228/mini-notes/internal/notes"
 	"github.com/labstack/echo/v5"
 	"github.com/labstack/echo/v5/middleware"
@@ -147,23 +148,27 @@ func main() {
 	router.GET("/static/*", echo.WrapHandler(http.StripPrefix("/static/", http.FileServer(http.FS(staticFS)))))
 	router.Static("/uploads", uploadsDir)
 
-	h := notes.NewHandler(uploadsDir)
+	notesHandler := notes.NewHandler(uploadsDir)
+	router.GET("/note", notesHandler.ListNotes)
+	router.GET("/note/new", notesHandler.ShowCreateForm)
+	router.GET("/note/private/new", notesHandler.ShowPrivateCreateForm)
+	router.GET("/note/:id/edit", notesHandler.ShowEditForm)
+	router.GET("/note/:id", notesHandler.GetNote)
+	router.POST("/note", notesHandler.CreateNote)
+	router.POST("/note/private", notesHandler.CreatePrivateNote)
+	router.POST("/note/:id/decrypt", notesHandler.DecryptNote)
+	router.POST("/note/:id/edit/unlock", notesHandler.UnlockPrivateEditForm)
+	router.POST("/note/:id/edit", notesHandler.UpdateNote)
+	router.POST("/note/:id/pin", notesHandler.TogglePinNote)
+	router.DELETE("/note/:id", notesHandler.DeleteNote)
+	router.POST("/note/:id/restore", notesHandler.RestoreNote)
+	router.DELETE("/note/:id/permanent", notesHandler.PermanentDeleteNote)
+	router.GET("/archive", notesHandler.ListArchive)
 
-	router.GET("/note", h.ListNotes)
-	router.GET("/note/new", h.ShowCreateForm)
-	router.GET("/note/private/new", h.ShowPrivateCreateForm)
-	router.GET("/note/:id/edit", h.ShowEditForm)
-	router.GET("/note/:id", h.GetNote)
-	router.POST("/note", h.CreateNote)
-	router.POST("/note/private", h.CreatePrivateNote)
-	router.POST("/note/:id/decrypt", h.DecryptNote)
-	router.POST("/note/:id/edit/unlock", h.UnlockPrivateEditForm)
-	router.POST("/note/:id/edit", h.UpdateNote)
-	router.POST("/note/:id/pin", h.TogglePinNote)
-	router.DELETE("/note/:id", h.DeleteNote)
-	router.POST("/note/:id/restore", h.RestoreNote)
-	router.DELETE("/note/:id/permanent", h.PermanentDeleteNote)
-	router.GET("/archive", h.ListArchive)
+	backupService := backup.NewService(dbPath, uploadsDir)
+	backupHandler := backup.NewHandler(backupService)
+	router.GET("/backup", backupHandler.Save)
+	router.POST("/backup/restore", backupHandler.Restore)
 
 	srv := &http.Server{
 		Addr:              ":8800",
