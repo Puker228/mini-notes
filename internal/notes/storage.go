@@ -464,7 +464,7 @@ func updateNoteByID(ctx context.Context, ID int64, title, content, imageData str
 	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t}, nil
 }
 
-func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
+func updatePrivateNoteByID(ctx context.Context, ID int64, update PrivateNoteUpdate) (Note, error) {
 	encryptedData, err := queries.GetEncryptDataByID(ctx, ID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -475,7 +475,7 @@ func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageD
 	if !encryptedData.IsEncrypted {
 		return Note{}, ErrNoteNotEncrypted
 	}
-	if _, err := NewPasswordEncryptor(currentPassword).Decrypt(
+	if _, err := NewPasswordEncryptor(update.CurrentPassword).Decrypt(
 		encryptedData.EncryptionSalt,
 		encryptedData.EncryptionNonce,
 		[]byte(encryptedData.Content),
@@ -483,21 +483,21 @@ func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageD
 		return Note{}, ErrInvalidPassword
 	}
 
-	password := currentPassword
-	if newPassword != "" {
-		password = newPassword
+	password := update.CurrentPassword
+	if update.NewPassword != "" {
+		password = update.NewPassword
 	}
 
-	newSalt, newNonce, newCiphertext, err := NewPasswordEncryptor(password).Encrypt([]byte(content))
+	newSalt, newNonce, newCiphertext, err := NewPasswordEncryptor(password).Encrypt([]byte(update.Content))
 	if err != nil {
 		return Note{}, err
 	}
 
 	now := time.Now().UTC().Format(timeLayout)
 	rowsAffected, err := queries.UpdatePrivateNoteByID(ctx, notesdb.UpdatePrivateNoteByIDParams{
-		Title:           title,
+		Title:           update.Title,
 		Content:         string(newCiphertext),
-		ImageData:       imageData,
+		ImageData:       update.ImageData,
 		UpdatedAt:       now,
 		EncryptionSalt:  newSalt,
 		EncryptionNonce: newNonce,
@@ -511,7 +511,7 @@ func updatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageD
 	}
 
 	t, _ := time.Parse(timeLayout, now)
-	return Note{ID: ID, Title: title, Content: content, ImageData: imageData, UpdatedAt: t, IsEncrypted: true}, nil
+	return Note{ID: ID, Title: update.Title, Content: update.Content, ImageData: update.ImageData, UpdatedAt: t, IsEncrypted: true}, nil
 }
 
 func togglePinNoteByID(ctx context.Context, ID int64) (Note, error) {

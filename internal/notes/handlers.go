@@ -247,7 +247,10 @@ func (h *Handler) PermanentDeleteNote(c *echo.Context) error {
 		return c.JSON(http.StatusBadRequest, map[string]any{"error": "invalid note id"})
 	}
 
-	existing, _ := GetNoteByID(ctx, noteID)
+	existing, err := GetNoteByID(ctx, noteID)
+	if err != nil && !errors.Is(err, ErrNoteNotFound) {
+		return c.JSON(http.StatusInternalServerError, map[string]any{"error": "failed to load note"})
+	}
 
 	if err := PermanentDeleteNoteByID(ctx, noteID); err != nil {
 		if errors.Is(err, ErrNoteNotFound) {
@@ -448,7 +451,13 @@ func (h *Handler) UpdateNote(c *echo.Context) error {
 			}))
 		}
 
-		note, err := UpdatePrivateNoteByID(ctx, noteID, title, content, imageData, currentPassword, c.FormValue("new_password"))
+		note, err := UpdatePrivateNoteByID(ctx, noteID, PrivateNoteUpdate{
+			Title:           title,
+			Content:         content,
+			ImageData:       imageData,
+			CurrentPassword: currentPassword,
+			NewPassword:     c.FormValue("new_password"),
+		})
 		if err != nil {
 			if errors.Is(err, ErrNoteNotFound) {
 				return c.JSON(http.StatusNotFound, map[string]any{"message": "note not found"})

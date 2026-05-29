@@ -11,6 +11,14 @@ var (
 	ErrNoteNotEncrypted = errors.New("note is not encrypted")
 )
 
+type PrivateNoteUpdate struct {
+	Title           string
+	Content         string
+	ImageData       string
+	CurrentPassword string
+	NewPassword     string
+}
+
 func ListNotes(ctx context.Context, p ListParams) (ListResult, error) {
 	return listNotes(ctx, p)
 }
@@ -43,8 +51,8 @@ func UpdateNoteByID(ctx context.Context, ID int64, title, content, imageData str
 	return updateNoteByID(ctx, ID, title, content, imageData)
 }
 
-func UpdatePrivateNoteByID(ctx context.Context, ID int64, title, content, imageData, currentPassword, newPassword string) (Note, error) {
-	return updatePrivateNoteByID(ctx, ID, title, content, imageData, currentPassword, newPassword)
+func UpdatePrivateNoteByID(ctx context.Context, ID int64, update PrivateNoteUpdate) (Note, error) {
+	return updatePrivateNoteByID(ctx, ID, update)
 }
 
 func TogglePinNoteByID(ctx context.Context, ID int64) (Note, error) {
